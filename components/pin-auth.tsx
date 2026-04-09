@@ -1,13 +1,10 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React from "react"
+
+import { useState, useEffect } from "react"
 
 const AUTH_STORAGE_KEY = "matteo_tracker_auth"
-
-interface StoredAuth {
-  token: string
-  verification: string
-}
 
 interface PinAuthProps {
   children: React.ReactNode
@@ -18,41 +15,28 @@ export function PinAuth({ children }: PinAuthProps) {
   const [pin, setPin] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [sessionExpired, setSessionExpired] = useState(false)
 
   useEffect(() => {
-    const stored = localStorage.getItem(AUTH_STORAGE_KEY)
-    if (stored) {
-      try {
-        const auth: StoredAuth = JSON.parse(stored)
-        if (auth.token && auth.verification) {
-          verifyToken(auth)
-        } else {
-          localStorage.removeItem(AUTH_STORAGE_KEY)
-          setIsAuthenticated(false)
-        }
-      } catch {
-        localStorage.removeItem(AUTH_STORAGE_KEY)
-        setIsAuthenticated(false)
-      }
+    const storedToken = localStorage.getItem(AUTH_STORAGE_KEY)
+    if (storedToken) {
+      verifyToken(storedToken)
     } else {
       setIsAuthenticated(false)
     }
   }, [])
 
-  async function verifyToken(auth: StoredAuth) {
+  async function verifyToken(token: string) {
     try {
       const res = await fetch("/api/auth/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: auth.token, verification: auth.verification }),
+        body: JSON.stringify({ token }),
       })
-
+      
       if (res.ok) {
         setIsAuthenticated(true)
       } else {
         localStorage.removeItem(AUTH_STORAGE_KEY)
-        setSessionExpired(true)
         setIsAuthenticated(false)
       }
     } catch {
@@ -66,6 +50,7 @@ export function PinAuth({ children }: PinAuthProps) {
     setIsLoading(true)
 
     try {
+      console.log("[v0] Attempting login with query:", pin)
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -73,17 +58,17 @@ export function PinAuth({ children }: PinAuthProps) {
       })
 
       const data = await res.json()
+      console.log("[v0] Login response:", res.status, data)
 
-      if (res.ok && data.token && data.verification) {
-        const auth: StoredAuth = { token: data.token, verification: data.verification }
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth))
-        setSessionExpired(false)
+      if (res.ok && data.token) {
+        localStorage.setItem(AUTH_STORAGE_KEY, data.token)
         setIsAuthenticated(true)
       } else {
-        setError(data.error || "PIN incorrecto")
+        setError(data.error || "Error desconocido")
         setPin("")
       }
-    } catch {
+    } catch (err) {
+      console.error("[v0] Login error:", err)
       setError("Error de conexión")
     } finally {
       setIsLoading(false)
@@ -107,20 +92,16 @@ export function PinAuth({ children }: PinAuthProps) {
       <div className="max-w-md mx-auto px-6 py-32">
         <div className="text-center mb-12">
           <h1 className="text-2xl font-light tracking-tight text-foreground mb-2">Acceso Restringido</h1>
-          {sessionExpired ? (
-            <p className="text-sm text-amber-500">Sesión expirada, vuelve a iniciar sesión</p>
-          ) : (
-            <p className="text-sm text-muted-foreground">Introduce el PIN de acceso</p>
-          )}
+          <p className="text-sm text-muted-foreground">Busca la canción correcta en Spotify</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <input
-              type="password"
+              type="text"
               value={pin}
               onChange={(e) => setPin(e.target.value)}
-              placeholder="••••••••"
+              placeholder="Buscar canción..."
               className="w-full text-center bg-transparent border-b-2 border-border py-4 focus:outline-none focus:border-foreground transition-colors"
               autoFocus
             />
@@ -135,7 +116,7 @@ export function PinAuth({ children }: PinAuthProps) {
             disabled={!pin || isLoading}
             className="w-full py-3 bg-foreground text-background font-mono text-sm uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? "Verificando..." : "Acceder"}
+            {isLoading ? "Buscando..." : "Verificar"}
           </button>
         </form>
       </div>

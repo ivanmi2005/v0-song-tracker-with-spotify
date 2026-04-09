@@ -11,14 +11,19 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
-    const { error } = await supabase.from("songs").delete().eq("id", id)
+    const { error } = await supabase
+      .from("songs")
+      .delete()
+      .eq("id", id)
 
     if (error) {
+      console.error("[v0] Database error:", error)
       return NextResponse.json({ error: "Error deleting song" }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
-  } catch {
+  } catch (error) {
+    console.error("[v0] Error in POST /api/songs/delete:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
