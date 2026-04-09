@@ -1,11 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { sileo } from "sileo"
 
 export function SpotifyDateForm() {
-  const router = useRouter()
   const [spotifyInput, setSpotifyInput] = useState("")
   const [spotifyDate, setSpotifyDate] = useState({ day: "", month: "", year: "" })
   const [preview, setPreview] = useState<any>(null)
@@ -39,7 +37,7 @@ export function SpotifyDateForm() {
       if (!res.ok) {
         sileo.error({ title: data.error || "Canción no encontrada" })
       } else {
-        setPreview(data)
+        setPreview(data.track)
       }
     } catch {
       sileo.error({ title: "Error de conexión" })
@@ -68,8 +66,9 @@ export function SpotifyDateForm() {
         sileo.error({ title: data.error || "Error al añadir" })
       } else {
         sileo.success({ title: "Canción añadida" })
-        router.push("/")
-        router.refresh()
+        setPreview(null)
+        setSpotifyInput("")
+        setSpotifyDate({ day: "", month: "", year: "" })
       }
     } catch {
       sileo.error({ title: "Error de conexión" })
