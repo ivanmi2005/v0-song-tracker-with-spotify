@@ -13,10 +13,9 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
 
-    let songData: any
+    let songData: Record<string, unknown>
 
     if (manual) {
-      // Manual entry
       if (!trackName || !artistName) {
         return NextResponse.json({ error: "Missing song or artist name" }, { status: 400 })
       }
@@ -33,7 +32,6 @@ export async function POST(request: Request) {
         added_at: customDate,
       }
     } else {
-      // Spotify entry
       if (!trackId) {
         return NextResponse.json({ error: "Missing trackId" }, { status: 400 })
       }
@@ -47,7 +45,7 @@ export async function POST(request: Request) {
       songData = {
         spotify_track_id: trackData.id,
         track_name: trackData.name,
-        artist_name: trackData.artists.map((a: any) => a.name).join(", "),
+        artist_name: trackData.artists.map((a: { name: string }) => a.name).join(", "),
         album_name: trackData.album?.name || null,
         album_image_url: trackData.album?.images?.[0]?.url || null,
         preview_url: trackData.preview_url || null,
@@ -59,13 +57,11 @@ export async function POST(request: Request) {
     const { error } = await supabase.from("songs").insert(songData)
 
     if (error) {
-      console.error("[v0] Supabase insert error:", error)
       return NextResponse.json({ error: "Failed to save song" }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error("[v0] Add song error:", error)
+  } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

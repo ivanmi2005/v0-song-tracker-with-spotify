@@ -10,13 +10,11 @@ export async function GET() {
       .order("created_at", { ascending: false })
 
     if (error) {
-      console.error("[v0] Fetch starred error:", error)
       return NextResponse.json({ error: "Failed to fetch starred songs" }, { status: 500 })
     }
 
     return NextResponse.json(data || [])
-  } catch (error) {
-    console.error("[v0] Starred error:", error)
+  } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -32,7 +30,6 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
 
-    // Check if already starred
     const { data: existing } = await supabase
       .from("starred_songs")
       .select("id")
@@ -40,7 +37,6 @@ export async function POST(request: Request) {
       .single()
 
     if (existing) {
-      // Update existing star
       const { error } = await supabase
         .from("starred_songs")
         .update({ main_video_url, link_1, link_2, link_3, link_4, link_5 })
@@ -50,7 +46,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Failed to update star" }, { status: 500 })
       }
     } else {
-      // Create new star
       const { error } = await supabase
         .from("starred_songs")
         .insert({ spotify_track_id, main_video_url, link_1, link_2, link_3, link_4, link_5 })
@@ -61,8 +56,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error("[v0] Star error:", error)
+  } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -86,8 +80,7 @@ export async function DELETE(request: Request) {
     }
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error("[v0] Unstar error:", error)
+  } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
