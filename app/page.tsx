@@ -40,37 +40,43 @@ function getDaysSinceLastSong(lastDate: string): number {
   const last = new Date(lastDate)
   const now = new Date()
   const diffTime = Math.abs(now.getTime() - last.getTime())
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-  return diffDays
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24))
 }
 
 function getAveragePerDay(songs: Song[]): string {
   if (!songs || songs.length === 0) return "0"
-  
-  // Filter songs from 18/12/2025 onwards for accurate calculation
+
   const accurateStartDate = new Date("2025-12-18T00:00:00")
-  const filteredSongs = songs.filter(song => new Date(song.added_at) >= accurateStartDate)
-  
+  const filteredSongs = songs.filter((song) => new Date(song.added_at) >= accurateStartDate)
+
   if (filteredSongs.length === 0) return "0"
-  
-  const firstSong = filteredSongs[filteredSongs.length - 1]
-  const lastSong = filteredSongs[0]
-  const firstDate = new Date(firstSong.added_at)
-  const lastDate = new Date(lastSong.added_at)
-  const diffTime = Math.abs(lastDate.getTime() - firstDate.getTime())
-  const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+
+  const firstDate = new Date(filteredSongs[filteredSongs.length - 1].added_at)
+  const lastDate = new Date(filteredSongs[0].added_at)
+  const diffDays = Math.max(1, Math.ceil(Math.abs(lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)))
   return (filteredSongs.length / diffDays).toFixed(1)
 }
 
 function getFirstSongDate(songs: Song[]): string {
   if (!songs || songs.length === 0) return ""
-  const firstSong = songs[songs.length - 1]
-  const date = new Date(firstSong.added_at)
-  return date.toLocaleDateString("es-ES", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
+  const date = new Date(songs[songs.length - 1].added_at)
+  return date.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" })
+}
+
+function getTopDays(songs: Song[]): { date: string; count: number }[] {
+  const dayMap = new Map<string, number>()
+  songs.forEach((song) => {
+    const dateKey = new Date(song.added_at).toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
+    dayMap.set(dateKey, (dayMap.get(dateKey) || 0) + 1)
   })
+  return Array.from(dayMap.entries())
+    .map(([date, count]) => ({ date, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
 }
 
 export default async function Home() {
@@ -80,11 +86,10 @@ export default async function Home() {
   const { data: starredSongs } = await supabase.from("starred_songs").select("*")
 
   if (error) {
-    console.error("[v0] Error fetching songs:", error)
+    console.error("Error fetching songs:", error)
   }
 
-  // Build starred map for quick lookup
-  const starredMap: Record<string, any> = {}
+  const starredMap: Record<string, { main_video_url: string | null; link_1: string | null; link_2: string | null; link_3: string | null; link_4: string | null; link_5: string | null }> = {}
   if (starredSongs) {
     for (const s of starredSongs) {
       starredMap[s.spotify_track_id] = {
@@ -99,7 +104,6 @@ export default async function Home() {
   }
 
   const songMap = new Map<string, SongWithCount>()
-
   if (songs) {
     songs.forEach((song: Song) => {
       const existing = songMap.get(song.spotify_track_id)
@@ -128,11 +132,11 @@ export default async function Home() {
   )
 
   const latestSong = uniqueSongs[0]
-
   const daysSinceLastSong = latestSong ? getDaysSinceLastSong(latestSong.latest_added_at) : 0
   const averagePerDay = getAveragePerDay(songs || [])
   const latestIsNew = latestSong ? isToday(latestSong.latest_added_at) : false
   const firstSongDate = getFirstSongDate(songs || [])
+  const topDays = getTopDays(songs || [])
 
   return (
     <main className="min-h-screen bg-background">
@@ -154,7 +158,7 @@ export default async function Home() {
               <div className="flex flex-col items-center gap-6">
                 {latestSong.album_image_url && (
                   <img
-                    src={latestSong.album_image_url || "/placeholder.svg"}
+                    src={latestSong.album_image_url}
                     alt={latestSong.album_name || "Album"}
                     className="w-64 h-64 object-cover shadow-lg"
                   />
@@ -203,7 +207,7 @@ export default async function Home() {
                   existing.push(song)
                   songsByDay.set(dateKey, existing)
                 })
-                
+
                 return Array.from(songsByDay.entries()).map(([date, daySongs]) => {
                   const isDayToday = isToday(daySongs[0].added_at)
                   return (
@@ -239,6 +243,7 @@ export default async function Home() {
           )}
         </section>
 
+        {/* Stats */}
         <section className="mt-12 pt-8 border-t border-border/30">
           <div className="flex justify-center gap-12 text-center">
             <div>
@@ -262,8 +267,34 @@ export default async function Home() {
           )}
         </section>
 
+        {/* Top días */}
+        {topDays.length > 0 && (
+          <section className="mt-10 pt-8 border-t border-border/30">
+            <p className="text-xs font-mono tracking-widest uppercase text-muted-foreground/60 mb-4 text-center">
+              Top días
+            </p>
+            <div className="space-y-2">
+              {topDays.map(({ date, count }, i) => (
+                <div key={date} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-mono text-muted-foreground/30 w-4">{i + 1}</span>
+                    <span className="text-xs font-mono text-muted-foreground">{date}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-1 bg-foreground/20 rounded-full"
+                      style={{ width: `${Math.round((count / topDays[0].count) * 80)}px` }}
+                    />
+                    <span className="text-xs font-mono text-muted-foreground/60 w-6 text-right">{count}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Twitter Embed */}
-        <TwitterEmbed 
+        <TwitterEmbed
           tweetHtml={`<blockquote class="twitter-tweet" data-media-max-width="560"><p lang="es" dir="ltr">El que no quiera, que no se lo crea. Cerrando el Opium el tío mientras los demás seguimos jodidos hoy. <a href="https://t.co/hFM3X34t2W">pic.twitter.com/hFM3X34t2W</a></p>&mdash; Camisetas Retro Atleti (@RetroAtleti) <a href="https://twitter.com/RetroAtleti/status/2016859862001410423?ref_src=twsrc%5Etfw">January 29, 2026</a></blockquote>`}
         />
 
@@ -272,9 +303,9 @@ export default async function Home() {
           <p className="text-[10px] font-mono text-muted-foreground/40 italic mb-6">
             * Tracking before 18/12/2025 may be inaccurate and is not included in average calculation
           </p>
-          <img 
-            src="https://opiummadrid.com/wp-content/uploads/2023/10/Logo-Opium-Madrid-web-negro-banner-cookies.png" 
-            alt="Opium Madrid" 
+          <img
+            src="https://opiummadrid.com/wp-content/uploads/2023/10/Logo-Opium-Madrid-web-negro-banner-cookies.png"
+            alt="Opium Madrid"
             className="h-8 mx-auto mb-4 opacity-60"
           />
           <p className="text-xs font-mono text-muted-foreground/50 tracking-wide">Powered by Ivanmi &amp; Associates</p>
