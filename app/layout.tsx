@@ -18,7 +18,8 @@ const mono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "tecla",
-  description: "Historial de canciones de Matteo Ruggeri",
+  description: "Matteo Ruggeri y Triana Marrash PILLADOS en los baños de Zona Gemelos",
+  generator: "v0.app",
   icons: {
     icon: [
       {

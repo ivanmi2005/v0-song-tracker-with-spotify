@@ -2,9 +2,21 @@
 
 import { AddSongForm } from "@/components/add-song-form"
 import Link from "next/link"
-import { PinAuth } from "@/components/pin-auth"
+import { useEffect } from "react"
+import { sileo } from "sileo"
 
-function AddPage() {
+export default function AddPage() {
+  useEffect(() => {
+    // Show connection toasts on page load
+    sileo.info({ title: "Conectando..." })
+    
+    const timer = setTimeout(() => {
+      sileo.success({ title: "Conectado" })
+    }, 1500)
+
+    return () => clearTimeout(timer)
+  }, [])
+
   return (
     <main className="min-h-screen bg-background">
       <div className="max-w-md mx-auto px-6 py-16">
@@ -32,13 +44,5 @@ function AddPage() {
         </div>
       </div>
     </main>
-  )
-}
-
-export default function AddPageWithAuth() {
-  return (
-    <PinAuth>
-      <AddPage />
-    </PinAuth>
   )
 }
