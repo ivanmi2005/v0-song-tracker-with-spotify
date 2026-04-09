@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { sileo } from "sileo"
 
 interface Song {
-  id: string
+  id: number
   spotify_track_id: string
   track_name: string
   artist_name: string

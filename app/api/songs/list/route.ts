@@ -1,29 +1,24 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url)
-    const manualOnly = searchParams.get("manual") === "true"
-
     const supabase = await createClient()
 
-    let query = supabase.from("songs").select("*").order("added_at", { ascending: false })
-
-    if (manualOnly) {
-      query = query.like("spotify_track_id", "manual-%")
-    } else if (searchParams.get("all") !== "true") {
-      query = query.limit(50)
-    }
-
-    const { data: songs, error } = await query
+    const { data: songs, error } = await supabase
+      .from("songs")
+      .select("*")
+      .order("added_at", { ascending: false })
+      .limit(50)
 
     if (error) {
+      console.error("[v0] Database error:", error)
       return NextResponse.json({ error: "Error loading songs" }, { status: 500 })
     }
 
     return NextResponse.json(songs || [])
-  } catch {
+  } catch (error) {
+    console.error("[v0] Error in GET /api/songs/list:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

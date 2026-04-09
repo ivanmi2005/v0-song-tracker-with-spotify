@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 
 interface StarredData {
   main_video_url: string | null
@@ -18,17 +18,6 @@ interface StarredSongOverlayProps {
 export function StarredSongOverlay({ starredMap }: StarredSongOverlayProps) {
   const [activeTrackId, setActiveTrackId] = useState<string | null>(null)
 
-  useEffect(() => {
-    (window as Record<string, unknown>).__openStarPopup = (trackId: string) => {
-      if (starredMap[trackId]) {
-        setActiveTrackId(trackId)
-      }
-    }
-    return () => {
-      delete (window as Record<string, unknown>).__openStarPopup
-    }
-  }, [starredMap])
-
   const activeData = activeTrackId ? starredMap[activeTrackId] : null
 
   const extraLinks = activeData
@@ -37,6 +26,14 @@ export function StarredSongOverlay({ starredMap }: StarredSongOverlayProps) {
 
   return (
     <>
+      {/* Star buttons rendered via portal-like approach - expose handler globally */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `window.__starredSongs = ${JSON.stringify(Object.keys(starredMap))};`,
+        }}
+      />
+
+      {/* Popup overlay */}
       {activeTrackId && activeData && (
         <div className="fixed inset-0 bg-background/95 z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-lg">
@@ -47,6 +44,7 @@ export function StarredSongOverlay({ starredMap }: StarredSongOverlayProps) {
               ← Close
             </button>
 
+            {/* Main video embed */}
             {activeData.main_video_url && (
               <div className="mb-8 w-full">
                 {activeData.main_video_url.includes("streamain.com") ||
@@ -57,7 +55,6 @@ export function StarredSongOverlay({ starredMap }: StarredSongOverlayProps) {
                     src={activeData.main_video_url}
                     title="Video embed"
                     className="w-full aspect-video bg-secondary border-0"
-                    sandbox="allow-scripts allow-same-origin allow-fullscreen"
                     allowFullScreen
                     allow="autoplay; encrypted-media"
                   />
@@ -72,6 +69,7 @@ export function StarredSongOverlay({ starredMap }: StarredSongOverlayProps) {
               </div>
             )}
 
+            {/* Extra links */}
             {extraLinks.length > 0 && (
               <div className="space-y-3">
                 <p className="text-[10px] font-mono tracking-widest uppercase text-muted-foreground/60">
@@ -103,6 +101,28 @@ export function StarredSongOverlay({ starredMap }: StarredSongOverlayProps) {
           </div>
         </div>
       )}
+
+      {/* Expose the setter for star clicks */}
+      <StarClickHandler onOpen={setActiveTrackId} starredMap={starredMap} />
     </>
   )
+}
+
+function StarClickHandler({
+  onOpen,
+  starredMap,
+}: {
+  onOpen: (trackId: string) => void
+  starredMap: Record<string, StarredData>
+}) {
+  // Attach click handlers to star icons
+  if (typeof window !== "undefined") {
+    ;(window as any).__openStarPopup = (trackId: string) => {
+      if (starredMap[trackId]) {
+        onOpen(trackId)
+      }
+    }
+  }
+
+  return null
 }
