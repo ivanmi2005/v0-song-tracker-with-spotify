@@ -17,20 +17,22 @@ export async function POST(request: NextRequest) {
         spotify_track_id: trackData.id,
         track_name: trackData.name,
         artist_name: trackData.artists.map((a: { name: string }) => a.name).join(", "),
-        album_name: trackData.album?.name || null,
-        album_image_url: trackData.album?.images?.[0]?.url || null,
+        album_name: trackData.album.name,
+        album_image_url: trackData.album.images[0]?.url || null,
         preview_url: trackData.preview_url || null,
-        spotify_url: trackData.external_urls?.spotify || `https://open.spotify.com/track/${trackData.id}`,
+        spotify_url: trackData.external_urls.spotify,
       })
       .select()
       .single()
 
     if (error) {
+      console.error("[v0] Database error:", error)
       return NextResponse.json({ error: "Error al guardar la canción" }, { status: 500 })
     }
 
     return NextResponse.json({ success: true, data })
-  } catch {
+  } catch (error) {
+    console.error("[v0] Error in POST /api/songs:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }
