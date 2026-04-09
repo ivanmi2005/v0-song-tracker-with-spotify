@@ -44,7 +44,7 @@ export function StarManager() {
     setLoading(true)
     try {
       const [songsRes, starredRes] = await Promise.all([
-        fetch("/api/songs/list?all=true"),
+        fetch("/api/songs/list"),
         fetch("/api/songs/star"),
       ])
       const songsData = await songsRes.json()
