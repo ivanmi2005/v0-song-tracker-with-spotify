@@ -12,39 +12,71 @@ interface ManualSong {
   spotify_track_id: string
 }
 
+interface SpotifyResult {
+  id: string
+  name: string
+  artists: { name: string }[]
+  album: {
+    name: string
+    images: { url: string }[]
+  }
+  external_urls: { spotify: string }
+  preview_url: string | null
+}
+
+type Step = "list" | "search" | "confirm"
+
 export function SyncManager() {
   const [songs, setSongs] = useState<ManualSong[]>([])
   const [loading, setLoading] = useState(true)
-  const [searching, setSearching] = useState<string | null>(null)
-  const [searchInput, setSearchInput] = useState<Record<string, string>>({})
+
+  // Active flow
+  const [step, setStep] = useState<Step>("list")
+  const [activeSong, setActiveSong] = useState<ManualSong | null>(null)
+  const [query, setQuery] = useState("")
+  const [searching, setSearching] = useState(false)
+  const [spotifyResult, setSpotifyResult] = useState<SpotifyResult | null>(null)
+  const [confirming, setConfirming] = useState(false)
 
   useEffect(() => {
     fetchManualSongs()
   }, [])
 
   async function fetchManualSongs() {
+    setLoading(true)
     try {
       const res = await fetch("/api/songs/list")
       const data = await res.json()
-      const manualSongs = Array.isArray(data)
-        ? data.filter((s) => s.spotify_track_id?.startsWith("manual-"))
+      const manual = Array.isArray(data)
+        ? data.filter((s: any) => s.spotify_track_id?.startsWith("manual-"))
         : []
-      setSongs(manualSongs)
+      setSongs(manual)
     } catch {
-      sileo.error({ title: "Error cargando entradas manuales" })
+      sileo.error({ title: "Error cargando canciones" })
     } finally {
       setLoading(false)
     }
   }
 
-  async function handleSearch(songId: string) {
-    const query = searchInput[songId]
-    if (!query?.trim()) {
-      sileo.warning({ title: "Introduce un texto de búsqueda" })
-      return
-    }
+  function startSync(song: ManualSong) {
+    setActiveSong(song)
+    setQuery(`${song.track_name} ${song.artist_name}`)
+    setSpotifyResult(null)
+    setStep("search")
+  }
 
-    setSearching(songId)
+  function reset() {
+    setActiveSong(null)
+    setQuery("")
+    setSpotifyResult(null)
+    setStep("list")
+  }
+
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault()
+    if (!query.trim()) return
+    setSearching(true)
+    setSpotifyResult(null)
     try {
       const res = await fetch("/api/songs/preview", {
         method: "POST",
@@ -52,96 +84,199 @@ export function SyncManager() {
         body: JSON.stringify({ input: query }),
       })
       const data = await res.json()
-
-      if (!res.ok) {
-        sileo.error({ title: "Canción no encontrada" })
+      if (!res.ok || !data?.id) {
+        sileo.error({ title: "No se encontró ninguna canción" })
         return
       }
+      setSpotifyResult(data)
+      setStep("confirm")
+    } catch {
+      sileo.error({ title: "Error de conexión" })
+    } finally {
+      setSearching(false)
+    }
+  }
 
-      // Update the manual song in the database with Spotify data
-      const updateRes = await fetch("/api/songs/sync", {
+  async function handleConfirm() {
+    if (!activeSong || !spotifyResult) return
+    setConfirming(true)
+    try {
+      const res = await fetch("/api/songs/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          manualSongId: songId,
-          spotifyTrackId: data.id,
+          manualSongId: activeSong.id,
+          spotifyTrackId: spotifyResult.id,
           spotifyData: {
-            track_name: data.name,
-            artist_name: data.artists?.map((a: any) => a.name).join(", ") || "",
-            album_name: data.album?.name || null,
-            album_image_url: data.album?.images?.[0]?.url || null,
-            preview_url: data.preview_url || null,
-            spotify_url: data.external_urls?.spotify || `https://open.spotify.com/track/${data.id}`,
+            track_name: spotifyResult.name,
+            artist_name: spotifyResult.artists?.map((a) => a.name).join(", ") || "",
+            album_name: spotifyResult.album?.name || null,
+            album_image_url: spotifyResult.album?.images?.[0]?.url || null,
+            preview_url: spotifyResult.preview_url || null,
+            spotify_url: spotifyResult.external_urls?.spotify || `https://open.spotify.com/track/${spotifyResult.id}`,
           },
         }),
       })
 
-      if (!updateRes.ok) {
-        sileo.error({ title: "Error sincronizando" })
+      if (!res.ok) {
+        sileo.error({ title: "Error al sincronizar" })
         return
       }
 
-      sileo.success({ title: "Sincronizado con Spotify" })
-      setSongs(songs.filter((s) => s.id !== songId))
+      sileo.success({ title: `"${spotifyResult.name}" sincronizada` })
+      setSongs((prev) => prev.filter((s) => s.id !== activeSong.id))
+      reset()
     } catch {
       sileo.error({ title: "Error de conexión" })
     } finally {
-      setSearching(null)
+      setConfirming(false)
     }
   }
 
-  if (loading) {
-    return <p className="text-center text-muted-foreground py-8">Cargando entradas manuales...</p>
-  }
+  // --- STEP: LIST ---
+  if (step === "list") {
+    if (loading) {
+      return <p className="text-center text-muted-foreground py-12 font-mono text-sm">Cargando...</p>
+    }
 
-  if (songs.length === 0) {
+    if (songs.length === 0) {
+      return (
+        <div className="text-center py-16 space-y-4">
+          <p className="text-muted-foreground">No hay entradas manuales pendientes</p>
+          <a
+            href="/manual"
+            className="text-xs font-mono tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Crear una entrada manual →
+          </a>
+        </div>
+      )
+    }
+
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground mb-4">No hay entradas manuales para sincronizar</p>
-        <a href="/manual" className="text-sm font-mono tracking-widest uppercase hover:underline">
-          Crear una entrada manual
-        </a>
+      <div className="space-y-4">
+        <p className="text-xs font-mono text-muted-foreground/60 uppercase tracking-widest mb-6">
+          {songs.length} {songs.length === 1 ? "entrada" : "entradas"} pendientes
+        </p>
+        {songs.map((song) => (
+          <div
+            key={song.id}
+            className="flex items-center justify-between gap-4 py-4 border-b border-border/40"
+          >
+            <div className="min-w-0">
+              <p className="font-normal text-foreground truncate">{song.track_name}</p>
+              <p className="text-sm text-muted-foreground truncate">{song.artist_name}</p>
+              <p className="text-[10px] font-mono text-muted-foreground/50 mt-1">
+                {new Date(song.added_at).toLocaleDateString("es-ES")}
+              </p>
+            </div>
+            <button
+              onClick={() => startSync(song)}
+              className="shrink-0 py-2 px-4 border border-border font-mono text-xs uppercase tracking-widest hover:bg-foreground hover:text-background transition-colors bg-transparent"
+            >
+              Sincronizar
+            </button>
+          </div>
+        ))}
       </div>
     )
   }
 
+  // --- STEP: SEARCH ---
+  if (step === "search") {
+    return (
+      <div className="space-y-8">
+        <div className="border-b border-border pb-4">
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Entrada manual</p>
+          <p className="font-normal text-foreground">{activeSong?.track_name}</p>
+          <p className="text-sm text-muted-foreground">{activeSong?.artist_name}</p>
+        </div>
+
+        <form onSubmit={handleSearch} className="space-y-6">
+          <div>
+            <label className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-3 block">
+              Buscar en Spotify
+            </label>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Nombre canción + artista..."
+              className="w-full bg-transparent border-b border-border py-3 focus:outline-none focus:border-foreground transition-colors"
+              autoFocus
+              disabled={searching}
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={reset}
+              className="flex-1 py-3 border border-border bg-transparent font-mono text-sm uppercase tracking-widest hover:bg-secondary/30 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={!query.trim() || searching}
+              className="flex-1 py-3 bg-foreground text-background font-mono text-sm uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {searching ? "Buscando..." : "Buscar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    )
+  }
+
+  // --- STEP: CONFIRM ---
   return (
-    <div className="space-y-6">
-      <p className="text-xs text-muted-foreground/60 italic">
-        Busca cada entrada manual en Spotify para sincronizarla con datos reales
+    <div className="space-y-8">
+      <div className="border-b border-border pb-4">
+        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Entrada manual</p>
+        <p className="text-sm text-foreground">{activeSong?.track_name}</p>
+        <p className="text-xs text-muted-foreground">{activeSong?.artist_name}</p>
+      </div>
+
+      {spotifyResult && (
+        <div className="text-center py-6 border border-border space-y-4">
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Resultado en Spotify</p>
+          {spotifyResult.album?.images?.[0]?.url && (
+            <img
+              src={spotifyResult.album.images[0].url}
+              alt={spotifyResult.album.name}
+              className="w-32 h-32 mx-auto object-cover"
+            />
+          )}
+          <div>
+            <p className="font-normal text-foreground text-lg">{spotifyResult.name}</p>
+            <p className="text-sm text-muted-foreground">
+              {spotifyResult.artists?.map((a) => a.name).join(", ")}
+            </p>
+            <p className="text-xs text-muted-foreground/60 italic mt-1">{spotifyResult.album?.name}</p>
+          </div>
+        </div>
+      )}
+
+      <p className="text-sm text-center text-muted-foreground">
+        ¿Es esta la canción correcta? Se reemplazará la entrada manual.
       </p>
 
-      <div className="space-y-4">
-        {songs.map((song) => (
-          <div key={song.id} className="border border-border p-4 space-y-4">
-            <div>
-              <h3 className="font-normal text-foreground truncate">{song.track_name}</h3>
-              <p className="text-sm text-muted-foreground truncate">{song.artist_name}</p>
-              {song.album_name && <p className="text-xs text-muted-foreground/70 italic">{song.album_name}</p>}
-            </div>
-
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={searchInput[song.id] || ""}
-                onChange={(e) => setSearchInput({ ...searchInput, [song.id]: e.target.value })}
-                placeholder="Buscar en Spotify..."
-                className="flex-1 bg-transparent border-b border-border py-2 text-sm focus:outline-none focus:border-foreground transition-colors"
-                disabled={searching === song.id}
-                onKeyPress={(e) => {
-                  if (e.key === "Enter") handleSearch(song.id)
-                }}
-              />
-              <button
-                onClick={() => handleSearch(song.id)}
-                disabled={searching === song.id}
-                className="py-2 px-4 bg-foreground text-background font-mono text-xs uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 transition-colors"
-              >
-                {searching === song.id ? "Buscando..." : "Sincronizar"}
-              </button>
-            </div>
-          </div>
-        ))}
+      <div className="flex gap-3">
+        <button
+          onClick={() => setStep("search")}
+          disabled={confirming}
+          className="flex-1 py-3 border border-border bg-transparent font-mono text-sm uppercase tracking-widest hover:bg-secondary/30 disabled:opacity-50 transition-colors"
+        >
+          No, buscar otra
+        </button>
+        <button
+          onClick={handleConfirm}
+          disabled={confirming}
+          className="flex-1 py-3 bg-foreground text-background font-mono text-sm uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 transition-colors"
+        >
+          {confirming ? "Sincronizando..." : "Confirmar"}
+        </button>
       </div>
     </div>
   )
