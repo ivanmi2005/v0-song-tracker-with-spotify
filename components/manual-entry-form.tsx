@@ -1,9 +1,11 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { sileo } from "sileo"
 
 export function ManualEntryForm() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [manualData, setManualData] = useState({
     trackName: "",
@@ -50,8 +52,9 @@ export function ManualEntryForm() {
         const data = await res.json()
         sileo.error({ title: data.error || "Error al añadir" })
       } else {
-        sileo.success({ title: "Entrada manual creada — sincronízala en la pestaña Sync" })
-        setManualData({ trackName: "", artistName: "", albumName: "", day: "", month: "", year: "" })
+        sileo.success({ title: "Entrada manual creada" })
+        router.push("/sync")
+        router.refresh()
       }
     } catch {
       sileo.error({ title: "Error de conexión" })

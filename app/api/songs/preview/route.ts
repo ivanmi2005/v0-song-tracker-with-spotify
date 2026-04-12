@@ -29,7 +29,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ track })
-  } catch {
+  } catch (error) {
+    console.error("[v0] Error in POST /api/songs/preview:", error)
     return NextResponse.json({ error: "Error al buscar la canción" }, { status: 500 })
   }
 }

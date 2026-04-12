@@ -12,238 +12,271 @@ interface ManualSong {
   spotify_track_id: string
 }
 
+interface SpotifyResult {
+  id: string
+  name: string
+  artists: { name: string }[]
+  album: {
+    name: string
+    images: { url: string }[]
+  }
+  external_urls: { spotify: string }
+  preview_url: string | null
+}
+
+type Step = "list" | "search" | "confirm"
+
 export function SyncManager() {
   const [songs, setSongs] = useState<ManualSong[]>([])
   const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [searchInput, setSearchInput] = useState<Record<string, string>>({})
-  const [syncing, setSyncing] = useState<Set<string>>(new Set())
+
+  // Active flow
+  const [step, setStep] = useState<Step>("list")
+  const [activeSong, setActiveSong] = useState<ManualSong | null>(null)
+  const [query, setQuery] = useState("")
+  const [searching, setSearching] = useState(false)
+  const [spotifyResult, setSpotifyResult] = useState<SpotifyResult | null>(null)
+  const [confirming, setConfirming] = useState(false)
 
   useEffect(() => {
     fetchManualSongs()
   }, [])
 
   async function fetchManualSongs() {
+    setLoading(true)
     try {
-      const res = await fetch("/api/songs/list?manual=true")
+      const res = await fetch("/api/songs/list")
       const data = await res.json()
-      setSongs(Array.isArray(data) ? data : [])
+      const manual = Array.isArray(data)
+        ? data.filter((s: any) => s.spotify_track_id?.startsWith("manual-"))
+        : []
+      setSongs(manual)
     } catch {
-      sileo.error({ title: "Error cargando entradas manuales" })
+      sileo.error({ title: "Error cargando canciones" })
     } finally {
       setLoading(false)
     }
   }
 
-  function toggleSelect(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
+  function startSync(song: ManualSong) {
+    setActiveSong(song)
+    setQuery(`${song.track_name} ${song.artist_name}`)
+    setSpotifyResult(null)
+    setStep("search")
   }
 
-  function toggleAll() {
-    if (selected.size === songs.length) {
-      setSelected(new Set())
-    } else {
-      setSelected(new Set(songs.map((s) => s.id)))
-    }
+  function reset() {
+    setActiveSong(null)
+    setQuery("")
+    setSpotifyResult(null)
+    setStep("list")
   }
 
-  async function syncSong(songId: string): Promise<boolean> {
-    const query = searchInput[songId]?.trim()
-    if (!query) {
-      sileo.warning({ title: `Falta búsqueda para "${songs.find((s) => s.id === songId)?.track_name}"` })
-      return false
-    }
-
-    setSyncing((prev) => new Set(prev).add(songId))
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault()
+    if (!query.trim()) return
+    setSearching(true)
+    setSpotifyResult(null)
     try {
-      const previewRes = await fetch("/api/songs/preview", {
+      const res = await fetch("/api/songs/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input: query }),
       })
-      const data = await previewRes.json()
-
-      if (!previewRes.ok) {
-        sileo.error({ title: `No encontrada: "${query}"` })
-        return false
+      const data = await res.json()
+      if (!res.ok || !data?.id) {
+        sileo.error({ title: "No se encontró ninguna canción" })
+        return
       }
+      setSpotifyResult(data)
+      setStep("confirm")
+    } catch {
+      sileo.error({ title: "Error de conexión" })
+    } finally {
+      setSearching(false)
+    }
+  }
 
-      const updateRes = await fetch("/api/songs/sync", {
+  async function handleConfirm() {
+    if (!activeSong || !spotifyResult) return
+    setConfirming(true)
+    try {
+      const res = await fetch("/api/songs/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          manualSongId: songId,
-          spotifyTrackId: data.id,
+          manualSongId: activeSong.id,
+          spotifyTrackId: spotifyResult.id,
           spotifyData: {
-            track_name: data.name,
-            artist_name: data.artists?.map((a: { name: string }) => a.name).join(", ") || "",
-            album_name: data.album?.name || null,
-            album_image_url: data.album?.images?.[0]?.url || null,
-            preview_url: data.preview_url || null,
-            spotify_url: data.external_urls?.spotify || `https://open.spotify.com/track/${data.id}`,
+            track_name: spotifyResult.name,
+            artist_name: spotifyResult.artists?.map((a) => a.name).join(", ") || "",
+            album_name: spotifyResult.album?.name || null,
+            album_image_url: spotifyResult.album?.images?.[0]?.url || null,
+            preview_url: spotifyResult.preview_url || null,
+            spotify_url: spotifyResult.external_urls?.spotify || `https://open.spotify.com/track/${spotifyResult.id}`,
           },
         }),
       })
 
-      if (!updateRes.ok) {
-        sileo.error({ title: `Error sincronizando "${data.name}"` })
-        return false
+      if (!res.ok) {
+        sileo.error({ title: "Error al sincronizar" })
+        return
       }
 
-      return true
+      sileo.success({ title: `"${spotifyResult.name}" sincronizada` })
+      setSongs((prev) => prev.filter((s) => s.id !== activeSong.id))
+      reset()
     } catch {
       sileo.error({ title: "Error de conexión" })
-      return false
     } finally {
-      setSyncing((prev) => {
-        const next = new Set(prev)
-        next.delete(songId)
-        return next
-      })
+      setConfirming(false)
     }
   }
 
-  async function handleSyncSelected() {
-    const toSync = Array.from(selected)
-    const missingQuery = toSync.filter((id) => !searchInput[id]?.trim())
-    if (missingQuery.length > 0) {
-      const names = missingQuery.map((id) => songs.find((s) => s.id === id)?.track_name).join(", ")
-      sileo.warning({ title: `Faltan búsquedas para: ${names}` })
-      return
+  // --- STEP: LIST ---
+  if (step === "list") {
+    if (loading) {
+      return <p className="text-center text-muted-foreground py-12 font-mono text-sm">Cargando...</p>
     }
 
-    let successCount = 0
-    const successIds: string[] = []
-
-    for (const id of toSync) {
-      const ok = await syncSong(id)
-      if (ok) {
-        successCount++
-        successIds.push(id)
-      }
+    if (songs.length === 0) {
+      return (
+        <div className="text-center py-16 space-y-4">
+          <p className="text-muted-foreground">No hay entradas manuales pendientes</p>
+          <a
+            href="/manual"
+            className="text-xs font-mono tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Crear una entrada manual →
+          </a>
+        </div>
+      )
     }
 
-    if (successCount > 0) {
-      sileo.success({ title: `${successCount} ${successCount === 1 ? "canción sincronizada" : "canciones sincronizadas"}` })
-      setSongs((prev) => prev.filter((s) => !successIds.includes(s.id)))
-      setSelected(new Set())
-    }
-  }
-
-  async function handleSyncSingle(songId: string) {
-    const ok = await syncSong(songId)
-    if (ok) {
-      sileo.success({ title: "Sincronizado con Spotify" })
-      setSongs((prev) => prev.filter((s) => s.id !== songId))
-      setSelected((prev) => {
-        const next = new Set(prev)
-        next.delete(songId)
-        return next
-      })
-    }
-  }
-
-  if (loading) {
-    return <p className="text-center text-muted-foreground py-8">Cargando entradas manuales...</p>
-  }
-
-  if (songs.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground mb-4">No hay entradas manuales para sincronizar</p>
-        <a href="/admin" className="text-sm font-mono tracking-widest uppercase hover:underline">
-          Crear una entrada manual
-        </a>
+      <div className="space-y-4">
+        <p className="text-xs font-mono text-muted-foreground/60 uppercase tracking-widest mb-6">
+          {songs.length} {songs.length === 1 ? "entrada" : "entradas"} pendientes
+        </p>
+        {songs.map((song) => (
+          <div
+            key={song.id}
+            className="flex items-center justify-between gap-4 py-4 border-b border-border/40"
+          >
+            <div className="min-w-0">
+              <p className="font-normal text-foreground truncate">{song.track_name}</p>
+              <p className="text-sm text-muted-foreground truncate">{song.artist_name}</p>
+              <p className="text-[10px] font-mono text-muted-foreground/50 mt-1">
+                {new Date(song.added_at).toLocaleDateString("es-ES")}
+              </p>
+            </div>
+            <button
+              onClick={() => startSync(song)}
+              className="shrink-0 py-2 px-4 border border-border font-mono text-xs uppercase tracking-widest hover:bg-foreground hover:text-background transition-colors bg-transparent"
+            >
+              Sincronizar
+            </button>
+          </div>
+        ))}
       </div>
     )
   }
 
+  // --- STEP: SEARCH ---
+  if (step === "search") {
+    return (
+      <div className="space-y-8">
+        <div className="border-b border-border pb-4">
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Entrada manual</p>
+          <p className="font-normal text-foreground">{activeSong?.track_name}</p>
+          <p className="text-sm text-muted-foreground">{activeSong?.artist_name}</p>
+        </div>
+
+        <form onSubmit={handleSearch} className="space-y-6">
+          <div>
+            <label className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-3 block">
+              Buscar en Spotify
+            </label>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Nombre canción + artista..."
+              className="w-full bg-transparent border-b border-border py-3 focus:outline-none focus:border-foreground transition-colors"
+              autoFocus
+              disabled={searching}
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={reset}
+              className="flex-1 py-3 border border-border bg-transparent font-mono text-sm uppercase tracking-widest hover:bg-secondary/30 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={!query.trim() || searching}
+              className="flex-1 py-3 bg-foreground text-background font-mono text-sm uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {searching ? "Buscando..." : "Buscar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    )
+  }
+
+  // --- STEP: CONFIRM ---
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground/60 italic">
-          Busca cada entrada en Spotify para sincronizarla con datos reales
-        </p>
-        <button
-          onClick={toggleAll}
-          className="text-xs font-mono tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {selected.size === songs.length ? "Deseleccionar todo" : "Seleccionar todo"}
-        </button>
+    <div className="space-y-8">
+      <div className="border-b border-border pb-4">
+        <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Entrada manual</p>
+        <p className="text-sm text-foreground">{activeSong?.track_name}</p>
+        <p className="text-xs text-muted-foreground">{activeSong?.artist_name}</p>
       </div>
 
-      {selected.size > 0 && (
-        <div className="flex items-center justify-between border border-border p-3 bg-foreground/5">
-          <p className="text-xs font-mono text-muted-foreground">
-            {selected.size} {selected.size === 1 ? "seleccionada" : "seleccionadas"}
-          </p>
-          <button
-            onClick={handleSyncSelected}
-            disabled={syncing.size > 0}
-            className="py-1.5 px-4 bg-foreground text-background font-mono text-xs uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 transition-colors"
-          >
-            {syncing.size > 0 ? "Sincronizando..." : "Sincronizar seleccionadas"}
-          </button>
+      {spotifyResult && (
+        <div className="text-center py-6 border border-border space-y-4">
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Resultado en Spotify</p>
+          {spotifyResult.album?.images?.[0]?.url && (
+            <img
+              src={spotifyResult.album.images[0].url}
+              alt={spotifyResult.album.name}
+              className="w-32 h-32 mx-auto object-cover"
+            />
+          )}
+          <div>
+            <p className="font-normal text-foreground text-lg">{spotifyResult.name}</p>
+            <p className="text-sm text-muted-foreground">
+              {spotifyResult.artists?.map((a) => a.name).join(", ")}
+            </p>
+            <p className="text-xs text-muted-foreground/60 italic mt-1">{spotifyResult.album?.name}</p>
+          </div>
         </div>
       )}
 
-      <div className="space-y-4">
-        {songs.map((song) => (
-          <div
-            key={song.id}
-            className={`border p-4 space-y-4 transition-colors ${
-              selected.has(song.id) ? "border-foreground/40 bg-foreground/5" : "border-border"
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                checked={selected.has(song.id)}
-                onChange={() => toggleSelect(song.id)}
-                className="mt-1 cursor-pointer accent-foreground"
-              />
-              <div className="flex-1 min-w-0">
-                <h3 className="font-normal text-foreground truncate">{song.track_name}</h3>
-                <p className="text-sm text-muted-foreground truncate">{song.artist_name}</p>
-                {song.album_name && (
-                  <p className="text-xs text-muted-foreground/70 italic">{song.album_name}</p>
-                )}
-                <p className="text-[10px] font-mono text-muted-foreground/40 mt-1">
-                  {new Date(song.added_at).toLocaleDateString("es-ES")}
-                </p>
-              </div>
-            </div>
+      <p className="text-sm text-center text-muted-foreground">
+        ¿Es esta la canción correcta? Se reemplazará la entrada manual.
+      </p>
 
-            <div className="flex gap-2 pl-6">
-              <input
-                type="text"
-                value={searchInput[song.id] || ""}
-                onChange={(e) => setSearchInput({ ...searchInput, [song.id]: e.target.value })}
-                placeholder="Buscar en Spotify..."
-                className="flex-1 bg-transparent border-b border-border py-2 text-sm focus:outline-none focus:border-foreground transition-colors"
-                disabled={syncing.has(song.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSyncSingle(song.id)
-                }}
-              />
-              <button
-                onClick={() => handleSyncSingle(song.id)}
-                disabled={syncing.has(song.id)}
-                className="py-2 px-4 bg-foreground text-background font-mono text-xs uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 transition-colors"
-              >
-                {syncing.has(song.id) ? "..." : "Sync"}
-              </button>
-            </div>
-          </div>
-        ))}
+      <div className="flex gap-3">
+        <button
+          onClick={() => setStep("search")}
+          disabled={confirming}
+          className="flex-1 py-3 border border-border bg-transparent font-mono text-sm uppercase tracking-widest hover:bg-secondary/30 disabled:opacity-50 transition-colors"
+        >
+          No, buscar otra
+        </button>
+        <button
+          onClick={handleConfirm}
+          disabled={confirming}
+          className="flex-1 py-3 bg-foreground text-background font-mono text-sm uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 transition-colors"
+        >
+          {confirming ? "Sincronizando..." : "Confirmar"}
+        </button>
       </div>
     </div>
   )
