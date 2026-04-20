@@ -23,28 +23,29 @@ function AdminPanel() {
   const [activeTab, setActiveTab] = useState<TabId>("date")
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="max-w-md mx-auto px-6 py-16">
-        <header className="mb-10">
-          <Link
-            href="/"
-            className="text-xs font-mono tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
-          >
-            ← Back
-          </Link>
-          <h1 className="text-3xl md:text-4xl font-light tracking-tight text-foreground mt-8 mb-2">Admin</h1>
-        </header>
+    <main className="min-h-screen bg-background font-sans">
+      <div className="max-w-[28rem] mx-auto px-6 pt-16 pb-24">
+        <Link
+          href="/"
+          className="font-mono text-[0.6rem] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors inline-block mb-10"
+        >
+          ← Back
+        </Link>
+
+        <h1 className="font-sans font-medium text-[clamp(1.8rem,5vw,2.5rem)] tracking-[-0.03em] leading-none text-foreground mb-10">
+          Admin
+        </h1>
 
         {/* Tabs */}
-        <div className="flex flex-wrap gap-1 mb-10 border-b border-border pb-3">
+        <div className="flex flex-wrap gap-[2px] border-b border-border pb-3 mb-10">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`py-2 px-3 font-mono text-[11px] uppercase tracking-widest transition-colors ${
+              className={`py-2 px-3 font-mono text-[0.6rem] tracking-[0.14em] uppercase transition-colors ${
                 activeTab === tab.id
-                  ? "text-foreground bg-foreground/10"
-                  : "text-muted-foreground/60 hover:text-muted-foreground"
+                  ? "text-foreground bg-[oklch(0.94_0_0)]"
+                  : "text-[oklch(0.65_0_0)] hover:text-foreground"
               }`}
             >
               {tab.label}
@@ -56,7 +57,7 @@ function AdminPanel() {
         <div>
           {activeTab === "date" && (
             <section>
-              <p className="text-xs text-muted-foreground/60 italic mb-6">
+              <p className="font-mono text-[0.65rem] italic text-[oklch(0.65_0_0)] mb-6">
                 Añadir canción de Spotify con fecha personalizada
               </p>
               <SpotifyDateForm />
@@ -65,7 +66,7 @@ function AdminPanel() {
 
           {activeTab === "manual" && (
             <section>
-              <p className="text-xs text-muted-foreground/60 italic mb-6">
+              <p className="font-mono text-[0.65rem] italic text-[oklch(0.65_0_0)] mb-6">
                 Crear entrada manual para sincronizar después con Spotify
               </p>
               <ManualEntryForm />
@@ -74,18 +75,27 @@ function AdminPanel() {
 
           {activeTab === "sync" && (
             <section>
+              <p className="font-mono text-[0.65rem] italic text-[oklch(0.65_0_0)] mb-6">
+                Sincronizar entradas manuales con Spotify
+              </p>
               <SyncManager />
             </section>
           )}
 
           {activeTab === "stars" && (
             <section>
+              <p className="font-mono text-[0.65rem] italic text-[oklch(0.65_0_0)] mb-6">
+                Gestionar canciones destacadas
+              </p>
               <StarManager />
             </section>
           )}
 
           {activeTab === "delete" && (
             <section>
+              <p className="font-mono text-[0.65rem] italic text-[oklch(0.65_0_0)] mb-6">
+                Eliminar entradas del historial
+              </p>
               <DeleteSongList />
             </section>
           )}

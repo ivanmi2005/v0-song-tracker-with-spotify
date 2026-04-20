@@ -9,27 +9,23 @@ export function ManualEntryForm() {
     trackName: "",
     artistName: "",
     albumName: "",
-    day: "",
-    month: "",
-    year: "",
+    dateValue: "",
   })
 
-  function buildISODate(day: string, month: string, year: string): string {
-    const d = day.padStart(2, "0")
-    const m = month.padStart(2, "0")
-    return new Date(`${year}-${m}-${d}T12:00:00`).toISOString()
+  function buildISODate(value: string): string {
+    return new Date(`${value}T12:00:00`).toISOString()
   }
 
-  function isDateValid(day: string, month: string, year: string): boolean {
-    if (!day || !month || !year) return false
-    const n = Number(day), mo = Number(month), y = Number(year)
-    return n >= 1 && n <= 31 && mo >= 1 && mo <= 12 && y >= 2020 && y <= 2030
+  function isDateValid(value: string): boolean {
+    if (!value) return false
+    const year = parseInt(value.split("-")[0])
+    return year >= 2020 && year <= 2030
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const { trackName, artistName, albumName, day, month, year } = manualData
-    if (!trackName || !artistName || !isDateValid(day, month, year)) {
+    const { trackName, artistName, albumName, dateValue } = manualData
+    if (!trackName || !artistName || !isDateValid(dateValue)) {
       sileo.warning({ title: "Rellena todos los campos obligatorios" })
       return
     }
@@ -43,7 +39,7 @@ export function ManualEntryForm() {
           trackName,
           artistName,
           albumName: albumName || undefined,
-          customDate: buildISODate(day, month, year),
+          customDate: buildISODate(dateValue),
         }),
       })
       if (!res.ok) {
@@ -51,7 +47,7 @@ export function ManualEntryForm() {
         sileo.error({ title: data.error || "Error al añadir" })
       } else {
         sileo.success({ title: "Entrada manual creada — sincronízala en la pestaña Sync" })
-        setManualData({ trackName: "", artistName: "", albumName: "", day: "", month: "", year: "" })
+        setManualData({ trackName: "", artistName: "", albumName: "", dateValue: "" })
       }
     } catch {
       sileo.error({ title: "Error de conexión" })
@@ -60,107 +56,65 @@ export function ManualEntryForm() {
     }
   }
 
-  const dateInputs = (
-    day: string, month: string, year: string,
-    onChange: (field: "day" | "month" | "year", val: string) => void
-  ) => (
-    <div>
-      <label className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-3 block">
-        Fecha
-      </label>
-      <div className="flex gap-3">
-        <div className="flex-1">
-          <input
-            type="number"
-            value={day}
-            onChange={(e) => onChange("day", e.target.value)}
-            placeholder="DD"
-            min={1}
-            max={31}
-            className="w-full bg-transparent border-b border-border py-3 focus:outline-none focus:border-foreground transition-colors text-center font-mono"
-            disabled={isLoading}
-          />
-          <p className="text-[10px] text-center font-mono text-muted-foreground/50 mt-1">Día</p>
-        </div>
-        <div className="flex-1">
-          <input
-            type="number"
-            value={month}
-            onChange={(e) => onChange("month", e.target.value)}
-            placeholder="MM"
-            min={1}
-            max={12}
-            className="w-full bg-transparent border-b border-border py-3 focus:outline-none focus:border-foreground transition-colors text-center font-mono"
-            disabled={isLoading}
-          />
-          <p className="text-[10px] text-center font-mono text-muted-foreground/50 mt-1">Mes</p>
-        </div>
-        <div className="flex-1">
-          <input
-            type="number"
-            value={year}
-            onChange={(e) => onChange("year", e.target.value)}
-            placeholder="YYYY"
-            min={2020}
-            max={2030}
-            className="w-full bg-transparent border-b border-border py-3 focus:outline-none focus:border-foreground transition-colors text-center font-mono"
-            disabled={isLoading}
-          />
-          <p className="text-[10px] text-center font-mono text-muted-foreground/50 mt-1">Año</p>
-        </div>
-      </div>
-    </div>
-  )
+  const fieldClass =
+    "w-full px-4 py-3 bg-background border border-border text-foreground placeholder:text-[oklch(0.72_0_0)] focus:outline-none focus:border-foreground transition-colors font-mono text-[0.8rem]"
+  const labelClass =
+    "block font-mono text-[0.6rem] tracking-[0.18em] uppercase text-muted-foreground mb-[0.6rem]"
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-3 block">
-          Canción <span className="text-red-400">*</span>
-        </label>
+        <label className={labelClass}>Nombre de la canción</label>
         <input
           type="text"
           value={manualData.trackName}
           onChange={(e) => setManualData({ ...manualData, trackName: e.target.value })}
-          placeholder="Nombre de la canción..."
-          className="w-full bg-transparent border-b border-border py-3 focus:outline-none focus:border-foreground transition-colors"
+          placeholder="ESCALOFRÍOS"
+          className={fieldClass}
           disabled={isLoading}
           autoFocus
         />
       </div>
+
       <div>
-        <label className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-3 block">
-          Artista <span className="text-red-400">*</span>
-        </label>
+        <label className={labelClass}>Artista</label>
         <input
           type="text"
           value={manualData.artistName}
           onChange={(e) => setManualData({ ...manualData, artistName: e.target.value })}
-          placeholder="Nombre del artista..."
-          className="w-full bg-transparent border-b border-border py-3 focus:outline-none focus:border-foreground transition-colors"
+          placeholder="Mora"
+          className={fieldClass}
           disabled={isLoading}
         />
       </div>
+
       <div>
-        <label className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-3 block">
-          Álbum <span className="text-muted-foreground/40">(opcional)</span>
+        <label className={labelClass}>
+          Álbum{" "}
+          <span className="text-muted-foreground/50 normal-case tracking-normal">(opcional)</span>
         </label>
         <input
           type="text"
           value={manualData.albumName}
           onChange={(e) => setManualData({ ...manualData, albumName: e.target.value })}
-          placeholder="Nombre del álbum..."
-          className="w-full bg-transparent border-b border-border py-3 focus:outline-none focus:border-foreground transition-colors"
+          placeholder="TRAP CAMELLO"
+          className={fieldClass}
           disabled={isLoading}
         />
       </div>
 
-      {dateInputs(
-        manualData.day,
-        manualData.month,
-        manualData.year,
-        (field, val) => setManualData({ ...manualData, [field]: val })
-      )}
+      <div>
+        <label className={labelClass}>Fecha</label>
+        <input
+          type="date"
+          value={manualData.dateValue}
+          onChange={(e) => setManualData({ ...manualData, dateValue: e.target.value })}
+          min="2020-01-01"
+          max="2030-12-31"
+          className={fieldClass}
+          disabled={isLoading}
+        />
+      </div>
 
       <button
         type="submit"
@@ -168,11 +122,11 @@ export function ManualEntryForm() {
           isLoading ||
           !manualData.trackName ||
           !manualData.artistName ||
-          !isDateValid(manualData.day, manualData.month, manualData.year)
+          !isDateValid(manualData.dateValue)
         }
-        className="w-full py-3 bg-foreground text-background font-mono text-sm uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full py-[0.85rem] bg-foreground text-background font-mono text-[0.7rem] tracking-[0.12em] uppercase hover:opacity-85 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
       >
-        {isLoading ? "Creando..." : "Crear entrada"}
+        {isLoading ? "Creando..." : "Crear entrada manual"}
       </button>
     </form>
   )
