@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@font-face {
+  font-family: 'NimbusSans';
+  src: url('/fonts/NimbusSans-Medium.otf') format('opentype');
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -75,7 +83,7 @@
 }
 
 @theme inline {
-  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-sans: 'NimbusSans', "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-serif: "Cormorant Garamond", "Georgia", serif;
   --font-mono: "IBM Plex Mono", "Courier New", monospace;
   --color-background: var(--background);
