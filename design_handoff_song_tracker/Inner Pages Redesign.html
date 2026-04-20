@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Song Tracker — Inner Pages</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+@font-face {
+  font-family: 'NimbusSans';
+  src: url('uploads/Nimbus_Sans_DV_Medium.otf') format('opentype');
+  font-weight: 500;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #ffffff;
+  --fg: oklch(0.12 0 0);
+  --muted: oklch(0.45 0 0);
+  --border: oklch(0.88 0 0);
+  --border-light: oklch(0.93 0 0);
+  --sans: 'NimbusSans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --mono: 'IBM Plex Mono', 'Courier New', monospace;
+}
+
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+
+/* ── shared layout ── */
+.page { display: none; min-height: 100vh; }
+.page.active { display: block; }
+.inner { max-width: 28rem; margin: 0 auto; padding: 4rem 1.5rem 6rem; }
+
+/* ── back link ── */
+.back {
+  font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--muted); text-decoration: none;
+  transition: color 0.15s; display: inline-block; margin-bottom: 2.5rem;
+}
+.back:hover { color: var(--fg); }
+
+/* ── page header ── */
+.page-title {
+  font-family: var(--sans); font-size: clamp(1.8rem, 5vw, 2.5rem);
+  font-weight: 500; letter-spacing: -0.03em; line-height: 1; margin-bottom: 0.4rem;
+}
+.page-sub {
+  font-family: var(--mono); font-size: 0.7rem; color: var(--muted); margin-bottom: 3rem;
+}
+
+/* ── form elements ── */
+.field { margin-bottom: 1.5rem; }
+.field label {
+  display: block; font-family: var(--mono); font-size: 0.6rem;
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+.field input, .field textarea, .field select {
+  width: 100%; padding: 0.75rem 1rem;
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--fg); font-family: var(--mono); font-size: 0.8rem;
+  outline: none; transition: border-color 0.15s; resize: none;
+  appearance: none;
+}
+.field input:focus, .field textarea:focus { border-color: var(--fg); }
+.field input::placeholder { color: oklch(0.72 0 0); }
+
+/* ── buttons ── */
+.btn-primary {
+  width: 100%; padding: 0.85rem; background: var(--fg); color: var(--bg);
+  font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.12em;
+  text-transform: uppercase; border: none; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-primary:hover { opacity: 0.85; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-secondary {
+  width: 100%; padding: 0.85rem; background: transparent; color: var(--fg);
+  font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.12em;
+  text-transform: uppercase; border: 1px solid var(--border); cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-secondary:hover { background: oklch(0.96 0 0); }
+.btn-row { display: flex; gap: 0.75rem; }
+.btn-row .btn-primary, .btn-row .btn-secondary { flex: 1; }
+
+/* ── divider ── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+/* ── section label ── */
+.s-label {
+  font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 1rem;
+  display: block;
+}
+
+/* ── tabs ── */
+.tabs { display: flex; flex-wrap: wrap; gap: 2px; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); margin-bottom: 2.5rem; }
+.tab-btn {
+  padding: 0.5rem 0.75rem; font-family: var(--mono); font-size: 0.6rem;
+  letter-spacing: 0.14em; text-transform: uppercase; background: none;
+  border: none; cursor: pointer; color: oklch(0.65 0 0); transition: all 0.15s;
+}
+.tab-btn:hover { color: var(--fg); }
+.tab-btn.active { color: var(--fg); background: oklch(0.94 0 0); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── preview card ── */
+.preview-overlay {
+  position: fixed; inset: 0; background: rgba(255,255,255,0.93);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50; padding: 1.5rem; display: none;
+}
+.preview-overlay.show { display: flex; }
+.preview-card {
+  background: var(--bg); border: 1px solid var(--border);
+  padding: 2.5rem; max-width: 22rem; width: 100%; text-align: center;
+}
+.preview-card .conf-label {
+  font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 1.5rem;
+}
+.preview-art {
+  width: 12rem; height: 12rem; object-fit: cover;
+  margin: 0 auto 1.2rem; display: block;
+  background: oklch(0.93 0 0);
+}
+.preview-title { font-family: var(--sans); font-size: 1.5rem; font-weight: 500; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+.preview-artist { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); margin-bottom: 0.3rem; }
+.preview-album { font-family: var(--mono); font-size: 0.65rem; color: oklch(0.68 0 0); font-style: italic; margin-bottom: 1.5rem; }
+
+/* ── pin screen ── */
+.pin-wrap { max-width: 22rem; margin: 0 auto; padding: 8rem 1.5rem 6rem; text-align: center; }
+.pin-title { font-family: var(--sans); font-size: 1.8rem; font-weight: 500; letter-spacing: -0.03em; margin-bottom: 0.4rem; }
+.pin-sub { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); margin-bottom: 3rem; }
+.pin-input {
+  width: 100%; text-align: center; background: transparent;
+  border: none; border-bottom: 1.5px solid var(--border);
+  padding: 1rem; font-size: 1.5rem; letter-spacing: 0.4em;
+  outline: none; transition: border-color 0.15s; color: var(--fg);
+  margin-bottom: 2rem;
+}
+.pin-input:focus { border-color: var(--fg); }
+.pin-error { font-family: var(--mono); font-size: 0.65rem; color: #c0392b; margin-bottom: 1rem; }
+.pin-expired { font-family: var(--mono); font-size: 0.65rem; color: oklch(0.65 0.12 85); margin-bottom: 1rem; }
+
+/* ── song list (delete/stars) ── */
+.song-row {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.75rem 0; border-bottom: 1px solid var(--border-light);
+}
+.song-row-art { width: 3rem; height: 3rem; background: oklch(0.93 0 0); flex-shrink: 0; }
+.song-row-info { flex: 1; min-width: 0; }
+.song-row-title { font-family: var(--sans); font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.song-row-artist { font-family: var(--mono); font-size: 0.65rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.song-row-action { flex-shrink: 0; }
+.btn-del {
+  font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: #c0392b; background: none;
+  border: 1px solid #e8c4bc; padding: 0.3rem 0.6rem; cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-del:hover { background: #fdf0ee; }
+.btn-star {
+  font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: oklch(0.6 0.12 85); background: none;
+  border: 1px solid oklch(0.85 0.06 85); padding: 0.3rem 0.6rem; cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-star:hover { background: oklch(0.97 0.01 85); }
+
+/* ── sync status ── */
+.sync-item { padding: 0.9rem 0; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; }
+.sync-name { font-family: var(--sans); font-size: 0.85rem; font-weight: 500; }
+.sync-badge {
+  font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.12em;
+  text-transform: uppercase; padding: 0.2rem 0.5rem;
+}
+.sync-badge.pending { color: oklch(0.55 0.12 55); background: oklch(0.96 0.03 85); }
+.sync-badge.synced { color: oklch(0.4 0 0); background: oklch(0.94 0 0); }
+
+/* ── nav bar (prototype only) ── */
+.proto-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 0; overflow-x: auto;
+  padding: 0 1rem;
+}
+.proto-nav a {
+  font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted); text-decoration: none;
+  padding: 0.7rem 0.8rem; white-space: nowrap; border-bottom: 1.5px solid transparent;
+  transition: all 0.15s; cursor: pointer;
+}
+.proto-nav a.active { color: var(--fg); border-bottom-color: var(--fg); }
+.proto-nav a:hover { color: var(--fg); }
+.page { padding-top: 2.5rem; }
+
+/* ── tweaks ── */
+#tweaks-panel {
+  display: none; position: fixed; bottom: 24px; right: 24px;
+  background: #fff; border: 1.5px solid #222; padding: 16px; width: 220px;
+  z-index: 200; box-shadow: 0 4px 20px rgba(0,0,0,.12); font-family: var(--mono);
+}
+#tweaks-panel h4 { font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 12px; }
+.tw-row { margin-bottom: 10px; }
+.tw-row label { display: block; font-size: 0.6rem; color: #666; margin-bottom: 4px; }
+.tw-row select { width: 100%; font-family: var(--mono); font-size: 0.6rem; border: 1px solid #ddd; padding: 4px 6px; background: #fff; }
+</style>
+</head>
+<body>
+
+<!-- prototype nav -->
+<nav class="proto-nav">
+  <a class="active" onclick="showPage('pin')">PIN Auth</a>
+  <a onclick="showPage('add')">Add Song</a>
+  <a onclick="showPage('add-confirm')">Add · Confirm</a>
+  <a onclick="showPage('admin')">Admin</a>
+</nav>
+
+<!-- ══════════════════════════════════════
+     PAGE: PIN AUTH
+══════════════════════════════════════ -->
+<div class="page active" id="page-pin">
+  <div class="pin-wrap">
+    <h1 class="pin-title">Acceso Restringido</h1>
+    <p class="pin-sub">Introduce el PIN de acceso</p>
+    <input type="password" class="pin-input" placeholder="········" maxlength="8" id="pin-input" oninput="onPinInput(this)">
+    <p class="pin-error" id="pin-error" style="display:none;">PIN incorrecto</p>
+    <button class="btn-primary" id="pin-btn" disabled onclick="simulatePin()">Acceder</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE: ADD SONG
+══════════════════════════════════════ -->
+<div class="page" id="page-add">
+  <div class="inner">
+    <a class="back" onclick="showPage('pin')">← Back</a>
+    <h1 class="page-title">Add Song</h1>
+    <p class="page-sub">Paste a Spotify track URL or search by name</p>
+
+    <form onsubmit="showConfirm(event)">
+      <div class="field">
+        <label>Spotify URL or Song Title</label>
+        <input type="text" placeholder='https://open.spotify.com/track/... or "Mora — ESCALOFRÍOS"'>
+      </div>
+      <button type="submit" class="btn-primary">Buscar Canción</button>
+    </form>
+
+    <hr class="divider">
+
+    <span class="s-label">Cómo obtener el enlace</span>
+    <ol style="font-family: var(--mono); font-size: 0.7rem; color: var(--muted); line-height: 2; list-style: decimal; padding-left: 1.2rem;">
+      <li>Open Spotify and find the song</li>
+      <li>Click the three dots (···)</li>
+      <li>Select "Share" → "Copy song link"</li>
+      <li>Paste it here</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE: ADD SONG — CONFIRM OVERLAY
+══════════════════════════════════════ -->
+<div class="page" id="page-add-confirm" style="position:relative;">
+  <!-- underlying add page (static) -->
+  <div class="inner" style="opacity:0.3; pointer-events:none; user-select:none;">
+    <a class="back">← Back</a>
+    <h1 class="page-title">Add Song</h1>
+    <p class="page-sub">Paste a Spotify track URL or search by name</p>
+    <div class="field"><label>Spotify URL or Song Title</label><input type="text" value="Cupido — Peso Pluma" disabled></div>
+    <button class="btn-primary" disabled>Buscar Canción</button>
+  </div>
+  <!-- confirm overlay -->
+  <div style="position:absolute; inset:0; background:rgba(255,255,255,0.93); display:flex; align-items:center; justify-content:center; padding:1.5rem;">
+    <div style="background:var(--bg); border:1px solid var(--border); padding:2.5rem; max-width:22rem; width:100%; text-align:center;">
+      <p style="font-family:var(--mono); font-size:0.6rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); margin-bottom:1.5rem;">Confirmar Canción</p>
+      <div style="width:12rem; height:12rem; background:oklch(0.91 0 0); margin:0 auto 1.2rem; display:flex; align-items:center; justify-content:center;">
+        <span style="font-family:var(--mono); font-size:0.6rem; color:oklch(0.72 0 0);">album art</span>
+      </div>
+      <p style="font-family:var(--sans); font-size:1.4rem; font-weight:500; letter-spacing:-0.02em; margin-bottom:0.4rem;">Cupido</p>
+      <p style="font-family:var(--mono); font-size:0.75rem; color:var(--muted); margin-bottom:0.3rem;">Peso Pluma</p>
+      <p style="font-family:var(--mono); font-size:0.65rem; color:oklch(0.68 0 0); font-style:italic; margin-bottom:1.5rem;">Génesis</p>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="showPage('add')">Cancelar</button>
+        <button class="btn-primary" onclick="showPage('pin')">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE: ADMIN
+══════════════════════════════════════ -->
+<div class="page" id="page-admin">
+  <div class="inner">
+    <a class="back" onclick="showPage('pin')">← Back</a>
+    <h1 class="page-title">Admin</h1>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('date', this)">Con fecha</button>
+      <button class="tab-btn" onclick="switchTab('manual', this)">Manual</button>
+      <button class="tab-btn" onclick="switchTab('sync', this)">Sync</button>
+      <button class="tab-btn" onclick="switchTab('stars', this)">Stars</button>
+      <button class="tab-btn" onclick="switchTab('delete', this)">Eliminar</button>
+    </div>
+
+    <!-- Tab: Con fecha -->
+    <div class="tab-panel active" id="tab-date">
+      <p style="font-family:var(--mono); font-size:0.65rem; font-style:italic; color:oklch(0.65 0 0); margin-bottom:1.5rem;">Añadir canción de Spotify con fecha personalizada</p>
+      <div class="field"><label>Spotify URL</label><input type="text" placeholder="https://open.spotify.com/track/..."></div>
+      <div class="field"><label>Fecha</label><input type="date"></div>
+      <button class="btn-primary">Añadir con esta fecha</button>
+    </div>
+
+    <!-- Tab: Manual -->
+    <div class="tab-panel" id="tab-manual">
+      <p style="font-family:var(--mono); font-size:0.65rem; font-style:italic; color:oklch(0.65 0 0); margin-bottom:1.5rem;">Crear entrada manual para sincronizar después con Spotify</p>
+      <div class="field"><label>Nombre de la canción</label><input type="text" placeholder="ESCALOFRÍOS"></div>
+      <div class="field"><label>Artista</label><input type="text" placeholder="Mora"></div>
+      <div class="field"><label>Álbum (opcional)</label><input type="text" placeholder="TRAP CAMELLO"></div>
+      <div class="field"><label>Fecha</label><input type="date"></div>
+      <button class="btn-primary">Crear entrada manual</button>
+    </div>
+
+    <!-- Tab: Sync -->
+    <div class="tab-panel" id="tab-sync">
+      <p style="font-family:var(--mono); font-size:0.65rem; font-style:italic; color:oklch(0.65 0 0); margin-bottom:1.5rem;">Sincronizar entradas manuales con Spotify</p>
+      <div class="sync-item"><div><div class="sync-name">ESCALOFRÍOS</div><div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);">Mora</div></div><span class="sync-badge pending">Pendiente</span></div>
+      <div class="sync-item"><div><div class="sync-name">Hawái</div><div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);">Maluma</div></div><span class="sync-badge synced">Sincronizado</span></div>
+      <div class="sync-item"><div><div class="sync-name">Tú y Yo</div><div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);">Rels B</div></div><span class="sync-badge pending">Pendiente</span></div>
+      <div class="sync-item"><div><div class="sync-name">Cupido</div><div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);">Peso Pluma</div></div><span class="sync-badge synced">Sincronizado</span></div>
+      <hr class="divider" style="margin-top:1.5rem;">
+      <button class="btn-primary">Sincronizar pendientes</button>
+    </div>
+
+    <!-- Tab: Stars -->
+    <div class="tab-panel" id="tab-stars">
+      <p style="font-family:var(--mono); font-size:0.65rem; font-style:italic; color:oklch(0.65 0 0); margin-bottom:1.5rem;">Gestionar canciones destacadas</p>
+      <div class="song-row">
+        <div class="song-row-art"></div>
+        <div class="song-row-info"><div class="song-row-title">La Corriente</div><div class="song-row-artist">Bad Bunny, Tony Dize</div></div>
+        <div class="song-row-action"><button class="btn-star">✦ Editar</button></div>
+      </div>
+      <div class="song-row">
+        <div class="song-row-art"></div>
+        <div class="song-row-info"><div class="song-row-title">Hawái</div><div class="song-row-artist">Maluma</div></div>
+        <div class="song-row-action"><button class="btn-star">✦ Editar</button></div>
+      </div>
+      <div class="song-row">
+        <div class="song-row-art"></div>
+        <div class="song-row-info"><div class="song-row-title">Ojitos Lindos</div><div class="song-row-artist">Bad Bunny, Bomba Estéreo</div></div>
+        <div class="song-row-action"><button class="btn-star">✦ Editar</button></div>
+      </div>
+      <hr class="divider" style="margin-top:1.5rem; margin-bottom:0;">
+      <div style="padding:1rem 0;">
+        <button class="btn-secondary" style="font-size:0.6rem;">+ Añadir star manualmente</button>
+      </div>
+    </div>
+
+    <!-- Tab: Eliminar -->
+    <div class="tab-panel" id="tab-delete">
+      <p style="font-family:var(--mono); font-size:0.65rem; font-style:italic; color:oklch(0.65 0 0); margin-bottom:1.5rem;">Eliminar entradas del historial</p>
+      <div class="song-row">
+        <div class="song-row-art"></div>
+        <div class="song-row-info"><div class="song-row-title">TITÍ ME PREGUNTÓ</div><div class="song-row-artist">Bad Bunny · 19/04/2025</div></div>
+        <div class="song-row-action"><button class="btn-del">Eliminar</button></div>
+      </div>
+      <div class="song-row">
+        <div class="song-row-art"></div>
+        <div class="song-row-info"><div class="song-row-title">Moscow Mule</div><div class="song-row-artist">Bad Bunny · 12/04/2025</div></div>
+        <div class="song-row-action"><button class="btn-del">Eliminar</button></div>
+      </div>
+      <div class="song-row">
+        <div class="song-row-art"></div>
+        <div class="song-row-info"><div class="song-row-title">Cupido</div><div class="song-row-artist">Peso Pluma · 20/04/2025</div></div>
+        <div class="song-row-action"><button class="btn-del">Eliminar</button></div>
+      </div>
+      <div class="song-row">
+        <div class="song-row-art"></div>
+        <div class="song-row-info"><div class="song-row-title">El Apagón</div><div class="song-row-artist">Bad Bunny · 17/04/2025</div></div>
+        <div class="song-row-action"><button class="btn-del">Eliminar</button></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- TWEAKS -->
+<div id="tweaks-panel">
+  <h4>Tweaks</h4>
+  <div class="tw-row">
+    <label>Vista inicial</label>
+    <select onchange="showPage(this.value)">
+      <option value="pin">PIN Auth</option>
+      <option value="add">Add Song</option>
+      <option value="add-confirm">Add · Confirm</option>
+      <option value="admin">Admin</option>
+    </select>
+  </div>
+  <div class="tw-row">
+    <label>Tab admin inicial</label>
+    <select onchange="switchTabByName(this.value)">
+      <option value="date">Con fecha</option>
+      <option value="manual">Manual</option>
+      <option value="sync">Sync</option>
+      <option value="stars">Stars</option>
+      <option value="delete">Eliminar</option>
+    </select>
+  </div>
+</div>
+
+<script>
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id)?.classList.add('active');
+  document.querySelectorAll('.proto-nav a').forEach((a, i) => {
+    const ids = ['pin','add','add-confirm','admin'];
+    a.classList.toggle('active', ids[i] === id);
+  });
+  // sync tweak select
+  const sel = document.querySelector('#tweaks-panel select');
+  if (sel) sel.value = id;
+}
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id)?.classList.add('active');
+  btn?.classList.add('active');
+}
+
+function switchTabByName(id) {
+  const btn = [...document.querySelectorAll('.tab-btn')].find(b => b.textContent.toLowerCase().includes(id === 'delete' ? 'elim' : id));
+  switchTab(id, btn);
+  showPage('admin');
+}
+
+function onPinInput(input) {
+  document.getElementById('pin-btn').disabled = input.value.length < 1;
+  document.getElementById('pin-error').style.display = 'none';
+}
+
+function simulatePin() {
+  const val = document.getElementById('pin-input').value;
+  if (val === '1234' || val.length >= 4) { showPage('add'); }
+  else { document.getElementById('pin-error').style.display = 'block'; }
+}
+
+function showConfirm(e) {
+  e.preventDefault();
+  showPage('add-confirm');
+}
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{"initialPage":"pin","initialTab":"date"}/*EDITMODE-END*/;
+
+window.addEventListener('message', e => {
+  if (e.data?.type === '__activate_edit_mode') document.getElementById('tweaks-panel').style.display = 'block';
+  if (e.data?.type === '__deactivate_edit_mode') document.getElementById('tweaks-panel').style.display = 'none';
+});
+window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+</script>
+</body>
+</html>
