@@ -75,7 +75,7 @@
 }
 
 @theme inline {
-  --font-sans: "Cormorant Garamond", "Georgia", serif;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-serif: "Cormorant Garamond", "Georgia", serif;
   --font-mono: "IBM Plex Mono", "Courier New", monospace;
   --color-background: var(--background);

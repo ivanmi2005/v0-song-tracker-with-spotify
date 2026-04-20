@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
 import { sileo } from "sileo"
 
 interface Song {
@@ -19,7 +18,6 @@ export function DeleteSongList() {
   const [loading, setLoading] = useState(true)
   const [selectedSong, setSelectedSong] = useState<Song | null>(null)
   const [deleting, setDeleting] = useState(false)
-  
 
   useEffect(() => {
     fetchSongs()
@@ -29,11 +27,9 @@ export function DeleteSongList() {
     try {
       const response = await fetch("/api/songs/list")
       const data = await response.json()
-      if (Array.isArray(data)) {
-        setSongs(data)
-      }
+      if (Array.isArray(data)) setSongs(data)
     } catch {
-      sileo.error({ title: "Error loading songs" })
+      sileo.error({ title: "Error cargando canciones" })
     } finally {
       setLoading(false)
     }
@@ -41,27 +37,23 @@ export function DeleteSongList() {
 
   async function handleDelete() {
     if (!selectedSong) return
-
     setDeleting(true)
-
     try {
       const response = await fetch("/api/songs/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: selectedSong.id }),
       })
-
       const data = await response.json()
-
       if (response.ok) {
-        sileo.success({ title: "Song deleted" })
+        sileo.success({ title: "Canción eliminada" })
         setSongs(songs.filter((s) => s.id !== selectedSong.id))
         setSelectedSong(null)
       } else {
-        sileo.error({ title: data.error || "Error deleting song" })
+        sileo.error({ title: data.error || "Error al eliminar" })
       }
     } catch {
-      sileo.error({ title: "Error deleting song" })
+      sileo.error({ title: "Error al eliminar" })
     } finally {
       setDeleting(false)
     }
@@ -69,41 +61,43 @@ export function DeleteSongList() {
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">Loading songs...</p>
-      </div>
+      <p className="font-mono text-[0.65rem] text-muted-foreground py-8 text-center">
+        Cargando canciones...
+      </p>
     )
   }
 
   if (songs.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground italic">No songs in history</p>
-      </div>
+      <p className="font-mono text-[0.65rem] italic text-muted-foreground py-12 text-center">
+        No hay canciones en el historial
+      </p>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Confirmation Dialog */}
+    <>
+      {/* Confirmation overlay */}
       {selectedSong && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-background border border-border p-6 max-w-sm w-full">
-            <p className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-4">
-              Confirm deletion
+        <div className="fixed inset-0 bg-background/93 flex items-center justify-center z-50 p-6">
+          <div className="bg-background border border-border p-8 max-w-[22rem] w-full">
+            <p className="font-mono text-[0.6rem] tracking-[0.2em] uppercase text-muted-foreground mb-6">
+              Confirmar eliminación
             </p>
             <div className="flex items-center gap-4 mb-6">
               {selectedSong.album_image_url && (
                 <img
-                  src={selectedSong.album_image_url || "/placeholder.svg"}
+                  src={selectedSong.album_image_url}
                   alt={selectedSong.album_name}
-                  className="w-16 h-16 object-cover"
+                  className="w-12 h-12 object-cover shrink-0"
                 />
               )}
               <div className="flex-1 min-w-0">
-                <h3 className="font-normal text-foreground truncate">{selectedSong.track_name}</h3>
-                <p className="text-sm text-muted-foreground truncate">{selectedSong.artist_name}</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">
+                <p className="font-sans font-medium text-[0.85rem] text-foreground truncate">
+                  {selectedSong.track_name}
+                </p>
+                <p className="font-mono text-[0.65rem] text-muted-foreground truncate">
+                  {selectedSong.artist_name} ·{" "}
                   {new Date(selectedSong.added_at).toLocaleDateString("es-ES", {
                     day: "2-digit",
                     month: "2-digit",
@@ -112,65 +106,67 @@ export function DeleteSongList() {
                 </p>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground mb-6">
-              Are you sure you want to delete this entry? This action cannot be undone.
+            <p className="font-mono text-[0.65rem] text-muted-foreground mb-6">
+              Esta acción no se puede deshacer.
             </p>
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1 bg-transparent"
+              <button
                 onClick={() => setSelectedSong(null)}
                 disabled={deleting}
+                className="flex-1 py-[0.85rem] border border-border bg-transparent text-foreground font-mono text-[0.7rem] tracking-[0.12em] uppercase hover:bg-[oklch(0.96_0_0)] disabled:opacity-40 transition-colors"
               >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                className="flex-1"
+                Cancelar
+              </button>
+              <button
                 onClick={handleDelete}
                 disabled={deleting}
+                className="flex-1 py-[0.85rem] bg-foreground text-background font-mono text-[0.7rem] tracking-[0.12em] uppercase hover:opacity-85 disabled:opacity-40 transition-opacity"
               >
-                {deleting ? "Deleting..." : "Delete"}
-              </Button>
+                {deleting ? "Eliminando..." : "Eliminar"}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Song List */}
-      <div className="space-y-0">
-        <p className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-4">
-          Recent songs
-        </p>
+      {/* Song list */}
+      <div>
         {songs.map((song) => (
-          <button
+          <div
             key={song.id}
-            type="button"
-            onClick={() => setSelectedSong(song)}
-            className="w-full flex items-center gap-4 py-4 border-b border-border/30 hover:bg-secondary/30 transition-colors -mx-4 px-4 text-left"
+            className="flex items-center gap-4 py-3 border-b border-[oklch(0.93_0_0)]"
           >
-            {song.album_image_url && (
+            {song.album_image_url ? (
               <img
-                src={song.album_image_url || "/placeholder.svg"}
+                src={song.album_image_url}
                 alt={song.album_name}
-                className="w-14 h-14 object-cover"
+                className="w-12 h-12 object-cover shrink-0"
               />
+            ) : (
+              <div className="w-12 h-12 bg-[oklch(0.93_0_0)] shrink-0" />
             )}
             <div className="flex-1 min-w-0">
-              <h3 className="font-normal text-foreground truncate">{song.track_name}</h3>
-              <p className="text-sm text-muted-foreground truncate">{song.artist_name}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground/60">
+              <p className="font-sans font-medium text-[0.85rem] text-foreground truncate">
+                {song.track_name}
+              </p>
+              <p className="font-mono text-[0.65rem] text-muted-foreground truncate">
+                {song.artist_name} ·{" "}
                 {new Date(song.added_at).toLocaleDateString("es-ES", {
                   day: "2-digit",
                   month: "2-digit",
+                  year: "numeric",
                 })}
               </p>
             </div>
-          </button>
+            <button
+              onClick={() => setSelectedSong(song)}
+              className="font-mono text-[0.6rem] tracking-[0.1em] uppercase text-[#c0392b] border border-[#e8c4bc] px-[0.6rem] py-[0.3rem] hover:bg-[#fdf0ee] transition-colors shrink-0"
+            >
+              Eliminar
+            </button>
+          </div>
         ))}
       </div>
-    </div>
+    </>
   )
 }

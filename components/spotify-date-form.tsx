@@ -5,22 +5,18 @@ import { sileo } from "sileo"
 
 export function SpotifyDateForm() {
   const [spotifyInput, setSpotifyInput] = useState("")
-  const [spotifyDate, setSpotifyDate] = useState({ day: "", month: "", year: "" })
+  const [dateValue, setDateValue] = useState("")
   const [preview, setPreview] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  function buildISODate(day: string, month: string, year: string): string {
-    const d = day.padStart(2, "0")
-    const m = month.padStart(2, "0")
-    return new Date(`${year}-${m}-${d}T12:00:00`).toISOString()
+  function buildISODate(value: string): string {
+    return new Date(`${value}T12:00:00`).toISOString()
   }
 
-  function isDateValid(day: string, month: string, year: string): boolean {
-    if (!day || !month || !year) return false
-    const n = Number(day),
-      mo = Number(month),
-      y = Number(year)
-    return n >= 1 && n <= 31 && mo >= 1 && mo <= 12 && y >= 2020 && y <= 2030
+  function isDateValid(value: string): boolean {
+    if (!value) return false
+    const year = parseInt(value.split("-")[0])
+    return year >= 2020 && year <= 2030
   }
 
   async function handleSearch(e: React.FormEvent) {
@@ -47,7 +43,7 @@ export function SpotifyDateForm() {
   }
 
   async function handleConfirm() {
-    if (!preview || !isDateValid(spotifyDate.day, spotifyDate.month, spotifyDate.year)) {
+    if (!preview || !isDateValid(dateValue)) {
       sileo.warning({ title: "Introduce una fecha válida" })
       return
     }
@@ -58,7 +54,7 @@ export function SpotifyDateForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           trackId: preview.id,
-          customDate: buildISODate(spotifyDate.day, spotifyDate.month, spotifyDate.year),
+          customDate: buildISODate(dateValue),
         }),
       })
       if (!res.ok) {
@@ -68,7 +64,7 @@ export function SpotifyDateForm() {
         sileo.success({ title: "Canción añadida" })
         setPreview(null)
         setSpotifyInput("")
-        setSpotifyDate({ day: "", month: "", year: "" })
+        setDateValue("")
       }
     } catch {
       sileo.error({ title: "Error de conexión" })
@@ -77,74 +73,20 @@ export function SpotifyDateForm() {
     }
   }
 
-  const dateInputs = (
-    day: string,
-    month: string,
-    year: string,
-    onChange: (field: "day" | "month" | "year", val: string) => void
-  ) => (
-    <div>
-      <label className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-3 block">
-        Fecha
-      </label>
-      <div className="flex gap-3">
-        <div className="flex-1">
-          <input
-            type="number"
-            value={day}
-            onChange={(e) => onChange("day", e.target.value)}
-            placeholder="DD"
-            min={1}
-            max={31}
-            className="w-full bg-transparent border-b border-border py-3 focus:outline-none focus:border-foreground transition-colors text-center font-mono"
-            disabled={isLoading}
-          />
-          <p className="text-[10px] text-center font-mono text-muted-foreground/50 mt-1">Día</p>
-        </div>
-        <div className="flex-1">
-          <input
-            type="number"
-            value={month}
-            onChange={(e) => onChange("month", e.target.value)}
-            placeholder="MM"
-            min={1}
-            max={12}
-            className="w-full bg-transparent border-b border-border py-3 focus:outline-none focus:border-foreground transition-colors text-center font-mono"
-            disabled={isLoading}
-          />
-          <p className="text-[10px] text-center font-mono text-muted-foreground/50 mt-1">Mes</p>
-        </div>
-        <div className="flex-1">
-          <input
-            type="number"
-            value={year}
-            onChange={(e) => onChange("year", e.target.value)}
-            placeholder="YYYY"
-            min={2020}
-            max={2030}
-            className="w-full bg-transparent border-b border-border py-3 focus:outline-none focus:border-foreground transition-colors text-center font-mono"
-            disabled={isLoading}
-          />
-          <p className="text-[10px] text-center font-mono text-muted-foreground/50 mt-1">Año</p>
-        </div>
-      </div>
-    </div>
-  )
-
   return (
     <>
       {!preview ? (
         <form onSubmit={handleSearch} className="space-y-6">
           <div>
-            <label className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-3 block">
-              URL o búsqueda de Spotify
+            <label className="block font-mono text-[0.6rem] tracking-[0.18em] uppercase text-muted-foreground mb-[0.6rem]">
+              Spotify URL
             </label>
             <input
               type="text"
               value={spotifyInput}
               onChange={(e) => setSpotifyInput(e.target.value)}
-              placeholder="Pega URL de Spotify o busca..."
-              className="w-full bg-transparent border-b border-border py-3 focus:outline-none focus:border-foreground transition-colors"
+              placeholder="https://open.spotify.com/track/..."
+              className="w-full px-4 py-3 bg-background border border-border text-foreground placeholder:text-[oklch(0.72_0_0)] focus:outline-none focus:border-foreground transition-colors font-mono text-[0.8rem]"
               disabled={isLoading}
               autoFocus
             />
@@ -152,7 +94,7 @@ export function SpotifyDateForm() {
           <button
             type="submit"
             disabled={!spotifyInput.trim() || isLoading}
-            className="w-full py-3 bg-foreground text-background font-mono text-sm uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full py-[0.85rem] bg-foreground text-background font-mono text-[0.7rem] tracking-[0.12em] uppercase hover:opacity-85 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
           >
             {isLoading ? "Buscando..." : "Buscar canción"}
           </button>
@@ -162,37 +104,52 @@ export function SpotifyDateForm() {
           <div className="text-center py-6 border border-border">
             {preview.album?.images?.[0]?.url && (
               <img
-                src={preview.album.images[0].url || "/placeholder.svg"}
+                src={preview.album.images[0].url}
                 alt={preview.album?.name || "Album"}
                 className="w-40 h-40 mx-auto mb-4 object-cover"
               />
             )}
-            <h3 className="text-xl font-light mb-1">{preview.name}</h3>
-            <p className="text-sm text-muted-foreground">
-              {Array.isArray(preview.artists) ? preview.artists.map((a: any) => a.name).join(", ") : "Artista desconocido"}
+            <h3 className="font-sans font-medium text-[1.2rem] tracking-[-0.02em] mb-1">
+              {preview.name}
+            </h3>
+            <p className="font-mono text-[0.75rem] text-muted-foreground">
+              {Array.isArray(preview.artists)
+                ? preview.artists.map((a: any) => a.name).join(", ")
+                : "Artista desconocido"}
             </p>
           </div>
 
-          {dateInputs(spotifyDate.day, spotifyDate.month, spotifyDate.year, (field, val) =>
-            setSpotifyDate({ ...spotifyDate, [field]: val })
-          )}
+          <div>
+            <label className="block font-mono text-[0.6rem] tracking-[0.18em] uppercase text-muted-foreground mb-[0.6rem]">
+              Fecha
+            </label>
+            <input
+              type="date"
+              value={dateValue}
+              onChange={(e) => setDateValue(e.target.value)}
+              min="2020-01-01"
+              max="2030-12-31"
+              className="w-full px-4 py-3 bg-background border border-border text-foreground focus:outline-none focus:border-foreground transition-colors font-mono text-[0.8rem]"
+              disabled={isLoading}
+            />
+          </div>
 
           <div className="flex gap-3">
             <button
               type="button"
               onClick={() => setPreview(null)}
               disabled={isLoading}
-              className="flex-1 py-3 border border-border bg-transparent font-mono text-sm uppercase tracking-widest hover:bg-secondary/30 disabled:opacity-50 transition-colors"
+              className="flex-1 py-[0.85rem] border border-border bg-transparent text-foreground font-mono text-[0.7rem] tracking-[0.12em] uppercase hover:bg-[oklch(0.96_0_0)] disabled:opacity-40 transition-colors"
             >
               Atrás
             </button>
             <button
               type="button"
               onClick={handleConfirm}
-              disabled={isLoading || !isDateValid(spotifyDate.day, spotifyDate.month, spotifyDate.year)}
-              className="flex-1 py-3 bg-foreground text-background font-mono text-sm uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 transition-colors"
+              disabled={isLoading || !isDateValid(dateValue)}
+              className="flex-1 py-[0.85rem] bg-foreground text-background font-mono text-[0.7rem] tracking-[0.12em] uppercase hover:opacity-85 disabled:opacity-40 transition-opacity"
             >
-              {isLoading ? "Añadiendo..." : "Confirmar"}
+              {isLoading ? "Añadiendo..." : "Añadir con esta fecha"}
             </button>
           </div>
         </div>

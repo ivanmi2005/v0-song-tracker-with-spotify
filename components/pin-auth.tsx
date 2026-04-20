@@ -92,8 +92,10 @@ export function PinAuth({ children }: PinAuthProps) {
 
   if (isAuthenticated === null) {
     return (
-      <main className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground font-mono text-sm">Verificando...</p>
+      <main className="min-h-screen bg-background flex items-center justify-center font-sans">
+        <p className="font-mono text-[0.65rem] tracking-[0.15em] uppercase text-muted-foreground">
+          Verificando...
+        </p>
       </main>
     )
   }
@@ -103,37 +105,44 @@ export function PinAuth({ children }: PinAuthProps) {
   }
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="max-w-md mx-auto px-6 py-32">
-        <div className="text-center mb-12">
-          <h1 className="text-2xl font-light tracking-tight text-foreground mb-2">Acceso Restringido</h1>
-          {sessionExpired ? (
-            <p className="text-sm text-amber-500">Sesión expirada, vuelve a iniciar sesión</p>
-          ) : (
-            <p className="text-sm text-muted-foreground">Introduce el PIN de acceso</p>
-          )}
-        </div>
+    <main className="min-h-screen bg-background font-sans">
+      <div className="max-w-[22rem] mx-auto px-6 pt-32 pb-24 text-center">
+        <h1 className="font-sans font-medium text-[1.8rem] tracking-[-0.03em] leading-none text-foreground mb-2">
+          Acceso Restringido
+        </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <input
-              type="password"
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              placeholder="••••••••"
-              className="w-full text-center bg-transparent border-b-2 border-border py-4 focus:outline-none focus:border-foreground transition-colors"
-              autoFocus
-            />
-          </div>
+        {sessionExpired ? (
+          <p className="font-mono text-[0.65rem] text-amber-500 mb-12">
+            Sesión expirada, vuelve a iniciar sesión
+          </p>
+        ) : (
+          <p className="font-mono text-[0.7rem] text-muted-foreground mb-12">
+            Introduce el PIN de acceso
+          </p>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <input
+            type="password"
+            value={pin}
+            onChange={(e) => {
+              setPin(e.target.value)
+              setError("")
+            }}
+            placeholder="········"
+            maxLength={8}
+            className="w-full text-center bg-transparent border-b-[1.5px] border-border py-4 text-[1.5rem] tracking-[0.4em] focus:outline-none focus:border-foreground transition-colors text-foreground mb-8"
+            autoFocus
+          />
 
           {error && (
-            <p className="text-sm text-red-500 text-center">{error}</p>
+            <p className="font-mono text-[0.65rem] text-red-600 mb-4">{error}</p>
           )}
 
           <button
             type="submit"
             disabled={!pin || isLoading}
-            className="w-full py-3 bg-foreground text-background font-mono text-sm uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full py-[0.85rem] bg-foreground text-background font-mono text-[0.7rem] tracking-[0.12em] uppercase hover:opacity-85 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
           >
             {isLoading ? "Verificando..." : "Acceder"}
           </button>

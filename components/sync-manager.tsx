@@ -152,14 +152,23 @@ export function SyncManager() {
   }
 
   if (loading) {
-    return <p className="text-center text-muted-foreground py-8">Cargando entradas manuales...</p>
+    return (
+      <p className="font-mono text-[0.65rem] text-muted-foreground py-8 text-center">
+        Cargando entradas manuales...
+      </p>
+    )
   }
 
   if (songs.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground mb-4">No hay entradas manuales para sincronizar</p>
-        <a href="/admin" className="text-sm font-mono tracking-widest uppercase hover:underline">
+        <p className="font-mono text-[0.65rem] text-muted-foreground mb-4">
+          No hay entradas manuales para sincronizar
+        </p>
+        <a
+          href="/admin"
+          className="font-mono text-[0.6rem] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors"
+        >
           Crear una entrada manual
         </a>
       </div>
@@ -169,66 +178,65 @@ export function SyncManager() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground/60 italic">
-          Busca cada entrada en Spotify para sincronizarla con datos reales
-        </p>
         <button
           onClick={toggleAll}
-          className="text-xs font-mono tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
+          className="font-mono text-[0.6rem] tracking-[0.14em] uppercase text-muted-foreground hover:text-foreground transition-colors"
         >
           {selected.size === songs.length ? "Deseleccionar todo" : "Seleccionar todo"}
         </button>
       </div>
 
       {selected.size > 0 && (
-        <div className="flex items-center justify-between border border-border p-3 bg-foreground/5">
-          <p className="text-xs font-mono text-muted-foreground">
+        <div className="flex items-center justify-between border border-border p-3">
+          <p className="font-mono text-[0.6rem] text-muted-foreground">
             {selected.size} {selected.size === 1 ? "seleccionada" : "seleccionadas"}
           </p>
           <button
             onClick={handleSyncSelected}
             disabled={syncing.size > 0}
-            className="py-1.5 px-4 bg-foreground text-background font-mono text-xs uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 transition-colors"
+            className="py-[0.3rem] px-4 bg-foreground text-background font-mono text-[0.6rem] tracking-[0.12em] uppercase hover:opacity-85 disabled:opacity-40 transition-opacity"
           >
             {syncing.size > 0 ? "Sincronizando..." : "Sincronizar seleccionadas"}
           </button>
         </div>
       )}
 
-      <div className="space-y-4">
+      <div>
         {songs.map((song) => (
           <div
             key={song.id}
-            className={`border p-4 space-y-4 transition-colors ${
-              selected.has(song.id) ? "border-foreground/40 bg-foreground/5" : "border-border"
+            className={`py-4 border-b border-[oklch(0.93_0_0)] space-y-3 transition-colors ${
+              selected.has(song.id) ? "bg-foreground/[0.03]" : ""
             }`}
           >
-            <div className="flex items-start gap-3">
+            <div className="flex items-center gap-3">
               <input
                 type="checkbox"
                 checked={selected.has(song.id)}
                 onChange={() => toggleSelect(song.id)}
-                className="mt-1 cursor-pointer accent-foreground"
+                className="cursor-pointer accent-foreground shrink-0"
               />
               <div className="flex-1 min-w-0">
-                <h3 className="font-normal text-foreground truncate">{song.track_name}</h3>
-                <p className="text-sm text-muted-foreground truncate">{song.artist_name}</p>
-                {song.album_name && (
-                  <p className="text-xs text-muted-foreground/70 italic">{song.album_name}</p>
-                )}
-                <p className="text-[10px] font-mono text-muted-foreground/40 mt-1">
-                  {new Date(song.added_at).toLocaleDateString("es-ES")}
+                <p className="font-sans font-medium text-[0.85rem] text-foreground truncate">
+                  {song.track_name}
+                </p>
+                <p className="font-mono text-[0.65rem] text-muted-foreground truncate">
+                  {song.artist_name}
+                  {song.album_name && ` — ${song.album_name}`}
                 </p>
               </div>
+              <span className="font-mono text-[0.55rem] tracking-[0.12em] uppercase px-2 py-1 text-[oklch(0.55_0.12_55)] bg-[oklch(0.96_0.03_85)] shrink-0">
+                Pendiente
+              </span>
             </div>
 
-            <div className="flex gap-2 pl-6">
+            <div className="flex gap-2 pl-5">
               <input
                 type="text"
                 value={searchInput[song.id] || ""}
                 onChange={(e) => setSearchInput({ ...searchInput, [song.id]: e.target.value })}
                 placeholder="Buscar en Spotify..."
-                className="flex-1 bg-transparent border-b border-border py-2 text-sm focus:outline-none focus:border-foreground transition-colors"
+                className="flex-1 px-3 py-2 bg-background border border-border text-foreground placeholder:text-[oklch(0.72_0_0)] focus:outline-none focus:border-foreground transition-colors font-mono text-[0.75rem]"
                 disabled={syncing.has(song.id)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSyncSingle(song.id)
@@ -237,7 +245,7 @@ export function SyncManager() {
               <button
                 onClick={() => handleSyncSingle(song.id)}
                 disabled={syncing.has(song.id)}
-                className="py-2 px-4 bg-foreground text-background font-mono text-xs uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 bg-foreground text-background font-mono text-[0.6rem] tracking-[0.1em] uppercase hover:opacity-85 disabled:opacity-40 transition-opacity"
               >
                 {syncing.has(song.id) ? "..." : "Sync"}
               </button>
