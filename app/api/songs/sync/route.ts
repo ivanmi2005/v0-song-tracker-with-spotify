@@ -3,13 +3,40 @@ import { createClient } from "@/lib/supabase/server"
 
 export async function POST(request: Request) {
   try {
-    const { manualSongId, spotifyTrackId, spotifyData } = await request.json()
+    const body = await request.json()
+    const { manualSongId, spotifyTrackId, spotifyData, coverOnly, coverUrl, externalUrl } = body
 
-    if (!manualSongId || !spotifyTrackId || !spotifyData) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    if (!manualSongId) {
+      return NextResponse.json({ error: "Missing manualSongId" }, { status: 400 })
     }
 
     const supabase = await createClient()
+
+    // coverOnly mode: just update the cover image and external URL, keep spotify_track_id as-is
+    if (coverOnly) {
+      if (!coverUrl) {
+        return NextResponse.json({ error: "Missing coverUrl for coverOnly sync" }, { status: 400 })
+      }
+
+      const { error } = await supabase
+        .from("songs")
+        .update({
+          album_image_url: coverUrl,
+          ...(externalUrl ? { spotify_url: externalUrl } : {}),
+        })
+        .eq("id", manualSongId)
+
+      if (error) {
+        return NextResponse.json({ error: "Failed to update cover" }, { status: 500 })
+      }
+
+      return NextResponse.json({ success: true, mode: "coverOnly" })
+    }
+
+    // Standard Spotify sync mode
+    if (!spotifyTrackId || !spotifyData) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    }
 
     const { error } = await supabase
       .from("songs")
@@ -28,7 +55,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to sync song" }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, mode: "spotify" })
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
