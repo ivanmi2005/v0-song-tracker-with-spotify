@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { PinAuth } from "@/components/pin-auth"
 import { SpotifyDateForm } from "@/components/spotify-date-form"
 import { ManualEntryForm } from "@/components/manual-entry-form"
 import { SyncManager } from "@/components/sync-manager"
@@ -105,10 +104,4 @@ function AdminPanel() {
   )
 }
 
-export default function AdminPage() {
-  return (
-    <PinAuth>
-      <AdminPanel />
-    </PinAuth>
-  )
-}
+export default AdminPanel
