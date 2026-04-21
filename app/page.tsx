@@ -308,7 +308,9 @@ export default async function Home() {
             alt="Opium Madrid"
             className="h-8 mx-auto mb-4 opacity-60"
           />
-          <p className="text-xs font-mono text-muted-foreground/50 tracking-wide">Powered by Ivanmi &amp; Associates</p>
+          <p className="text-xs font-mono text-muted-foreground/50 tracking-wide inline-flex items-center gap-1.5">
+            Powered by <img src="/icon.svg" alt="logo" className="h-3.5 w-3.5 opacity-50" /> y asociados
+          </p>
         </footer>
       </div>
 
