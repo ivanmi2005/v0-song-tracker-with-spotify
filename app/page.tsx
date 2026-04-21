@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { TwitterEmbed } from "@/components/twitter-embed"
 import { StarredSongOverlay } from "@/components/starred-song-overlay"
 import { SongHistoryItem } from "@/components/song-history-item"
+import { ActivityHeatmap } from "@/components/activity-heatmap"
 
 interface Song {
   id: string
@@ -45,12 +46,9 @@ function getDaysSinceLastSong(lastDate: string): number {
 
 function getAveragePerDay(songs: Song[]): string {
   if (!songs || songs.length === 0) return "0"
-
   const accurateStartDate = new Date("2025-12-18T00:00:00")
   const filteredSongs = songs.filter((song) => new Date(song.added_at) >= accurateStartDate)
-
   if (filteredSongs.length === 0) return "0"
-
   const firstDate = new Date(filteredSongs[filteredSongs.length - 1].added_at)
   const lastDate = new Date(filteredSongs[0].added_at)
   const diffDays = Math.max(1, Math.ceil(Math.abs(lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)))
@@ -63,20 +61,13 @@ function getFirstSongDate(songs: Song[]): string {
   return date.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
-function getTopDays(songs: Song[]): { date: string; count: number }[] {
-  const dayMap = new Map<string, number>()
-  songs.forEach((song) => {
-    const dateKey = new Date(song.added_at).toLocaleDateString("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    })
-    dayMap.set(dateKey, (dayMap.get(dateKey) || 0) + 1)
-  })
-  return Array.from(dayMap.entries())
-    .map(([date, count]) => ({ date, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5)
+function getHeroTimeLabel(dateString: string): { label: string; isToday: boolean } {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffDays = Math.floor(Math.abs(now.getTime() - date.getTime()) / 86400000)
+  if (diffDays === 0) return { label: "Today", isToday: true }
+  if (diffDays === 1) return { label: "Hace 1 día", isToday: false }
+  return { label: `Hace ${diffDays} días`, isToday: false }
 }
 
 export default async function Home() {
@@ -89,7 +80,17 @@ export default async function Home() {
     console.error("Error fetching songs:", error)
   }
 
-  const starredMap: Record<string, { main_video_url: string | null; link_1: string | null; link_2: string | null; link_3: string | null; link_4: string | null; link_5: string | null }> = {}
+  const starredMap: Record<
+    string,
+    {
+      main_video_url: string | null
+      link_1: string | null
+      link_2: string | null
+      link_3: string | null
+      link_4: string | null
+      link_5: string | null
+    }
+  > = {}
   if (starredSongs) {
     for (const s of starredSongs) {
       starredMap[s.spotify_track_id] = {
@@ -136,46 +137,66 @@ export default async function Home() {
   const averagePerDay = getAveragePerDay(songs || [])
   const latestIsNew = latestSong ? isToday(latestSong.latest_added_at) : false
   const firstSongDate = getFirstSongDate(songs || [])
-  const topDays = getTopDays(songs || [])
+  const heroTime = latestSong ? getHeroTimeLabel(latestSong.latest_added_at) : null
+  const allSongDates = (songs || []).map((s: Song) => s.added_at)
 
   return (
     <main className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-6 py-16">
+
         {/* Header */}
         <header className="mb-16 text-center">
-          <h1 className="text-4xl md:text-5xl font-light tracking-tight text-foreground mb-2">{"Matteo Ruggeri"}</h1>
-          <p className="text-muted-foreground font-mono text-sm tracking-wide uppercase">Posting History</p>
+          <h1 className="font-sans font-medium text-[clamp(2.2rem,6vw,3.2rem)] tracking-[-0.03em] leading-none text-foreground mb-2 text-balance">
+            Matteo Ruggeri
+          </h1>
+          <p className="font-mono text-[0.65rem] tracking-[0.18em] uppercase text-muted-foreground">
+            Posting History
+          </p>
         </header>
 
-        {/* Latest Song */}
+        {/* Hero — latest song */}
         {latestSong && (
           <section className="mb-16 text-center">
-            <div className="relative inline-block">
-              <p className="text-xs font-mono tracking-widest uppercase text-muted-foreground mb-2">Last posted</p>
-              <p className="text-[10px] font-mono tracking-wide uppercase text-muted-foreground/40 mb-8">Impulsed by Opium</p>
-            </div>
+            <p className="font-mono text-[0.6rem] tracking-[0.2em] uppercase text-muted-foreground mb-2">
+              Last posted
+            </p>
+            <p className="font-mono text-[0.575rem] tracking-[0.12em] uppercase text-[oklch(0.75_0_0)] mb-8">
+              Impulsed by Opium
+            </p>
             <a href={latestSong.spotify_url} target="_blank" rel="noopener noreferrer" className="group block">
               <div className="flex flex-col items-center gap-6">
                 {latestSong.album_image_url && (
                   <img
                     src={latestSong.album_image_url}
                     alt={latestSong.album_name || "Album"}
-                    className="w-64 h-64 object-cover shadow-lg"
+                    className="w-64 h-64 object-cover transition-opacity group-hover:opacity-[0.88]"
                   />
                 )}
                 <div>
-                  <h2 className="text-3xl md:text-4xl font-light text-foreground mb-2 text-balance">
+                  <h2 className="font-sans font-medium text-[clamp(1.6rem,5vw,2.4rem)] tracking-[-0.025em] leading-[1.1] text-foreground mb-2 text-balance">
                     {latestSong.track_name}
                   </h2>
-                  <p className="text-xl text-muted-foreground">{latestSong.artist_name}</p>
+                  <p className="font-sans font-medium text-[1.15rem] text-muted-foreground mb-[0.4rem]">
+                    {latestSong.artist_name}
+                  </p>
                   {latestSong.album_name && (
-                    <p className="text-muted-foreground/70 mt-2 italic font-mono font-extralight text-sm">
+                    <p className="font-sans text-[0.7rem] font-light italic text-[oklch(0.65_0_0)]">
                       {latestSong.album_name}
                     </p>
                   )}
                 </div>
               </div>
             </a>
+            {/* hero-time */}
+            {heroTime && (
+              <p
+                className={`inline-block mt-[0.9rem] font-mono text-[0.6rem] tracking-[0.1em] uppercase ${
+                  heroTime.isToday ? "text-[#4a90d9]" : "text-[oklch(0.72_0_0)]"
+                }`}
+              >
+                {heroTime.label}
+              </p>
+            )}
           </section>
         )}
 
@@ -185,14 +206,16 @@ export default async function Home() {
         {/* History by Day */}
         <section>
           <div className="flex items-baseline justify-between mb-8">
-            <p className="text-xs font-mono tracking-widest uppercase text-muted-foreground">History</p>
-            <p className="text-xs font-mono text-muted-foreground">
+            <p className="font-mono text-[0.6rem] tracking-[0.2em] uppercase text-muted-foreground">History</p>
+            <p className="font-mono text-[0.6rem] text-muted-foreground">
               {uniqueSongs.length} unique · {songs?.length || 0} total
             </p>
           </div>
 
           {!songs || songs.length === 0 ? (
-            <p className="text-center text-muted-foreground py-12 italic">No songs yet. Add your first song at /add</p>
+            <p className="text-center text-muted-foreground py-12 italic font-mono text-sm">
+              No songs yet. Add your first song at /add
+            </p>
           ) : (
             <div className="space-y-8">
               {(() => {
@@ -212,16 +235,22 @@ export default async function Home() {
                   const isDayToday = isToday(daySongs[0].added_at)
                   return (
                     <div key={date}>
-                      <div className="flex items-center gap-2 mb-3">
-                        {isDayToday && <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />}
-                        <p className="text-[9px] font-mono tracking-widest uppercase text-muted-foreground/60">
+                      <div className="flex items-center gap-[0.4rem] mb-3">
+                        {isDayToday && (
+                          <span className="w-[6px] h-[6px] bg-[#4a90d9] rounded-full shrink-0" />
+                        )}
+                        <p
+                          className={`font-mono text-[0.55rem] tracking-[0.2em] uppercase ${
+                            isDayToday ? "text-[oklch(0.6_0_0)]" : "text-[oklch(0.6_0_0)]"
+                          } ${!isDayToday ? "ml-[14px]" : ""}`}
+                        >
                           {date}
                         </p>
-                        <span className="text-[9px] font-mono text-muted-foreground/40">
+                        <span className="font-mono text-[0.55rem] text-[oklch(0.75_0_0)]">
                           {daySongs.length} {daySongs.length === 1 ? "song" : "songs"}
                         </span>
                       </div>
-                      <div className="space-y-0">
+                      <div>
                         {daySongs.map((song: Song) => {
                           const playCount = songMap.get(song.spotify_track_id)?.play_count || 1
                           const isSongStarred = !!starredMap[song.spotify_track_id]
@@ -244,54 +273,39 @@ export default async function Home() {
         </section>
 
         {/* Stats */}
-        <section className="mt-12 pt-8 border-t border-border/30">
-          <div className="flex justify-center gap-12 text-center">
+        <section className="mt-12 pt-8 border-t border-[oklch(0.93_0_0)]">
+          <div className="flex justify-center gap-12 text-center mb-2">
             <div>
-              <p className="text-2xl font-light text-foreground">{averagePerDay}</p>
-              <p className="text-xs font-mono text-muted-foreground/60 uppercase tracking-wide mt-1">songs/day</p>
-            </div>
-            <div className="w-px bg-border/50" />
-            <div>
-              <p className="text-2xl font-light text-foreground">
-                {daysSinceLastSong === 0 ? <span className="text-blue-500">Today</span> : daysSinceLastSong}
+              <p className="font-sans font-medium text-[1.6rem] tracking-[-0.03em] leading-none text-foreground mb-[0.35rem]">
+                {averagePerDay}
               </p>
-              <p className="text-xs font-mono text-muted-foreground/60 uppercase tracking-wide mt-1">
+              <p className="font-mono text-[0.55rem] tracking-[0.15em] uppercase text-[oklch(0.62_0_0)]">
+                songs/day
+              </p>
+            </div>
+            <div className="w-px bg-[oklch(0.88_0_0)]" />
+            <div>
+              <p
+                className={`font-sans font-medium text-[1.6rem] tracking-[-0.03em] leading-none mb-[0.35rem] ${
+                  daysSinceLastSong === 0 ? "text-[#4a90d9]" : "text-foreground"
+                }`}
+              >
+                {daysSinceLastSong === 0 ? "Today" : daysSinceLastSong}
+              </p>
+              <p className="font-mono text-[0.55rem] tracking-[0.15em] uppercase text-[oklch(0.62_0_0)]">
                 {daysSinceLastSong === 0 ? "last post" : daysSinceLastSong === 1 ? "day ago" : "days ago"}
               </p>
             </div>
           </div>
           {firstSongDate && (
-            <p className="text-xs font-mono text-muted-foreground/40 uppercase tracking-wide mt-6 text-center">
+            <p className="font-mono text-[0.55rem] tracking-[0.15em] uppercase text-[oklch(0.72_0_0)] mt-6 text-center">
               tracking since {firstSongDate}
             </p>
           )}
         </section>
 
-        {/* Top días */}
-        {topDays.length > 0 && (
-          <section className="mt-10 pt-8 border-t border-border/30">
-            <p className="text-xs font-mono tracking-widest uppercase text-muted-foreground/60 mb-4 text-center">
-              Top días
-            </p>
-            <div className="space-y-2">
-              {topDays.map(({ date, count }, i) => (
-                <div key={date} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-mono text-muted-foreground/30 w-4">{i + 1}</span>
-                    <span className="text-xs font-mono text-muted-foreground">{date}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-1 bg-foreground/20 rounded-full"
-                      style={{ width: `${Math.round((count / topDays[0].count) * 80)}px` }}
-                    />
-                    <span className="text-xs font-mono text-muted-foreground/60 w-6 text-right">{count}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        {/* Activity Heatmap — replaces "Top días" */}
+        <ActivityHeatmap songDates={allSongDates} weeks={26} />
 
         {/* Twitter Embed */}
         <TwitterEmbed
@@ -300,15 +314,17 @@ export default async function Home() {
 
         {/* Footer */}
         <footer className="mt-12 pt-8 border-t border-border text-center">
-          <p className="text-[10px] font-mono text-muted-foreground/40 italic mb-6">
+          <p className="font-mono text-[0.55rem] italic text-[oklch(0.72_0_0)] mb-6 leading-relaxed">
             * Tracking before 18/12/2025 may be inaccurate and is not included in average calculation
           </p>
           <img
             src="https://opiummadrid.com/wp-content/uploads/2023/10/Logo-Opium-Madrid-web-negro-banner-cookies.png"
             alt="Opium Madrid"
-            className="h-8 mx-auto mb-4 opacity-60"
+            className="h-8 mx-auto mb-4 opacity-55 grayscale"
           />
-          <p className="text-xs font-mono text-muted-foreground/50 tracking-wide">Powered by Ivanmi &amp; Associates</p>
+          <p className="font-mono text-[0.6rem] text-[oklch(0.72_0_0)] tracking-[0.05em]">
+            Powered by Ivanmi &amp; Associates
+          </p>
         </footer>
       </div>
 

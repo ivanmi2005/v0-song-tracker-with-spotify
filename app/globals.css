@@ -3,8 +3,8 @@
 
 @font-face {
   font-family: 'NimbusSans';
-  src: url('/Nimbus_Sans_DV_Medium.otf') format('opentype');
-  font-weight: 400 600;
+  src: url('/fonts/Nimbus_Sans_DV_Medium.otf') format('opentype');
+  font-weight: 400 700;
   font-style: normal;
   font-display: swap;
 }
