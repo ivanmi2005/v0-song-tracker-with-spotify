@@ -7,12 +7,14 @@ import { ManualEntryForm } from "@/components/manual-entry-form"
 import { SyncManager } from "@/components/sync-manager"
 import { StarManager } from "@/components/star-manager"
 import { DeleteSongList } from "@/components/delete-song-list"
+import { AiManager } from "@/components/ai-manager"
 
 const tabs = [
   { id: "date", label: "Con fecha" },
   { id: "manual", label: "Manual" },
   { id: "sync", label: "Sync" },
   { id: "stars", label: "Stars" },
+  { id: "ai", label: "AI" },
   { id: "delete", label: "Eliminar" },
 ] as const
 
@@ -87,6 +89,15 @@ function AdminPanel() {
                 Gestionar canciones destacadas
               </p>
               <StarManager />
+            </section>
+          )}
+
+          {activeTab === "ai" && (
+            <section>
+              <p className="font-mono text-[0.65rem] italic text-[oklch(0.65_0_0)] mb-6">
+                Marcar canciones generadas por AI
+              </p>
+              <AiManager />
             </section>
           )}
 
