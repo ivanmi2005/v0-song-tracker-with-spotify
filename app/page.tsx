@@ -14,6 +14,7 @@ interface Song {
   preview_url: string | null
   spotify_url: string
   added_at: string
+  is_ai?: boolean
 }
 
 interface SongWithCount {

@@ -20,15 +20,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Missing song or artist name" }, { status: 400 })
       }
 
+      const { coverUrl, externalUrl } = body
       const manualId = `manual-${Date.now()}`
       songData = {
         spotify_track_id: manualId,
         track_name: trackName,
         artist_name: artistName,
         album_name: albumName || null,
-        album_image_url: null,
+        album_image_url: coverUrl || null,
         preview_url: null,
-        spotify_url: `#manual-entry:${manualId}`,
+        spotify_url: externalUrl || `#manual-entry:${manualId}`,
         added_at: customDate,
       }
     } else {

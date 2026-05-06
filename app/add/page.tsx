@@ -2,8 +2,6 @@
 
 import { AddSongForm } from "@/components/add-song-form"
 import Link from "next/link"
-import { PinAuth } from "@/components/pin-auth"
-
 function AddPage() {
   return (
     <main className="min-h-screen bg-background font-sans">
@@ -40,10 +38,4 @@ function AddPage() {
   )
 }
 
-export default function AddPageWithAuth() {
-  return (
-    <PinAuth>
-      <AddPage />
-    </PinAuth>
-  )
-}
+export default AddPage
