@@ -131,4 +131,70 @@
   body {
     @apply bg-background text-foreground;
   }
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ── Matteo Ruggeri Wrapped (MRW) design tokens ───────────────────── */
+:root {
+  --mrw-blue: #1f4fb7;
+  --mrw-blue-deep: #163c8c;
+  --mrw-blue-soft: #2e62c9;
+  --mrw-blue-faint: #15347a;
+  --mrw-white: #ffffff;
+  --mrw-w-80: rgba(255, 255, 255, 0.8);
+  --mrw-w-60: rgba(255, 255, 255, 0.6);
+  --mrw-w-45: rgba(255, 255, 255, 0.45);
+  --mrw-w-25: rgba(255, 255, 255, 0.25);
+  --mrw-w-12: rgba(255, 255, 255, 0.12);
+  --mrw-w-06: rgba(255, 255, 255, 0.06);
+}
+
+.mrw-ndot {
+  font-family: var(--font-ndot), monospace;
+  letter-spacing: 0.04em;
+}
+.mrw-serif {
+  font-family: var(--font-richmond), Georgia, serif;
+}
+
+.mrw-page {
+  background: var(--mrw-blue);
+  color: var(--mrw-white);
+  min-height: 100vh;
+  animation: mrwFadeIn 0.5s ease both;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.mrw-page ::selection {
+  background: var(--mrw-white);
+  color: var(--mrw-blue);
+}
+
+@keyframes mrwFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.mrw-fade-enter {
+  animation: mrwFadeEnter 0.35s ease both;
+}
+@keyframes mrwFadeEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mrw-input::placeholder {
+  color: var(--mrw-w-45);
 }

@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Cormorant_Garamond, IBM_Plex_Mono } from "next/font/google"
+import localFont from "next/font/local"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 
@@ -14,6 +15,18 @@ const mono = IBM_Plex_Mono({
   weight: ["300", "400"],
   subsets: ["latin"],
   variable: "--font-mono",
+})
+
+const ndot = localFont({
+  src: "../public/fonts/Ndot55-Regular.otf",
+  variable: "--font-ndot",
+  display: "swap",
+})
+
+const richmond = localFont({
+  src: "../public/fonts/RichmondText-Regular.ttf",
+  variable: "--font-richmond",
+  display: "swap",
 })
 
 export const metadata: Metadata = {
@@ -47,7 +60,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="bg-background">
-      <body className={`${cormorant.variable} ${mono.variable} font-sans antialiased`}>
+      <body className={`${cormorant.variable} ${mono.variable} ${ndot.variable} ${richmond.variable} font-sans antialiased`}>
         {children}
         <Toaster position="top-center" />
         <Analytics />
