@@ -183,9 +183,7 @@ function DayBlockTimeline({ group }: { group: MrwGroup }) {
                     fontStyle: "italic",
                     lineHeight: 1.2,
                     color: "var(--mrw-white)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
+                    overflowWrap: "anywhere",
                   }}
                 >
                   {s.title}
@@ -196,9 +194,7 @@ function DayBlockTimeline({ group }: { group: MrwGroup }) {
                     margin: "3px 0 0",
                     fontSize: 13.5,
                     color: "var(--mrw-w-60)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
+                    overflowWrap: "anywhere",
                   }}
                 >
                   {s.artist}
@@ -368,7 +364,7 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
               className="mrw-ndot"
               style={{ margin: "10px 0 32px", fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--mrw-w-60)" }}
             >
-              ⤿ Impulsed by Opium
+              Impulsed by Opium
             </p>
 
             {lastSong.spotify ? (
@@ -586,7 +582,7 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
                     <p className="mrw-ndot" style={{ margin: 0, fontSize: 12, color: "var(--mrw-w-45)" }}>
                       {String(i + 1).padStart(2, "0")}
                     </p>
-                    <div style={{ position: "relative", height: 28, display: "flex", alignItems: "center" }}>
+                    <div style={{ position: "relative", minHeight: 28, display: "flex", alignItems: "center" }}>
                       <div style={{ position: "absolute", inset: 0, background: "var(--mrw-w-12)", width: `${pct}%` }} />
                       <p
                         className="mrw-serif"
@@ -595,12 +591,9 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
                           fontSize: 17,
                           fontStyle: "italic",
                           position: "relative",
-                          paddingLeft: 10,
+                          padding: "4px 8px 4px 10px",
                           color: "var(--mrw-white)",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          maxWidth: "100%",
+                          overflowWrap: "anywhere",
                         }}
                       >
                         {a.name}
@@ -638,7 +631,7 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
           >
             * Tracking before 18/12/2025 may be inaccurate and is not included in the average calculation.
           </p>
-          <img src="/ivanmi-logo.png" alt="ivanmi studios" style={{ height: 59, width: "auto", opacity: 0.95 }} />
+          <img src="/ivanmi-logo.png" alt="ivanmi studios" style={{ height: 72, width: "auto", opacity: 0.95 }} />
         </footer>
       </div>
     </div>
