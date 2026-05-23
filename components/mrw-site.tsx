@@ -260,8 +260,6 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
   const [artist, setArtist] = useState("all")
   const [showFilters, setShowFilters] = useState(false)
 
-  const year = new Date().getFullYear()
-
   const filtered = groups
     .filter((g) => month === "all" || monthKey(g.date) === month)
     .map((g) => ({
@@ -298,12 +296,12 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
             className="mrw-ndot"
             style={{ margin: 0, fontSize: 10, letterSpacing: "0.34em", textTransform: "uppercase", color: "var(--mrw-w-45)" }}
           >
-            posting history · {year}
+            posting history · 2025/2026
           </p>
           <h1
             className="mrw-ndot"
             style={{
-              margin: "32px 0 18px",
+              margin: "32px 0 32px",
               fontSize: "clamp(48px, 11vw, 84px)",
               lineHeight: 0.92,
               letterSpacing: "0.02em",
@@ -315,9 +313,6 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
             <br />
             Ruggeri
           </h1>
-          <p className="mrw-serif" style={{ margin: "0 0 32px", fontSize: 18, fontStyle: "italic", color: "var(--mrw-w-80)" }}>
-            posting history · 2025/2026
-          </p>
 
           <div style={{ display: "inline-flex", alignItems: "center", gap: 14 }}>
             <button
@@ -643,10 +638,7 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
           >
             * Tracking before 18/12/2025 may be inaccurate and is not included in the average calculation.
           </p>
-          <img src="/ivanmi-logo.png" alt="ivanmi studios" style={{ height: 44, width: "auto", opacity: 0.95 }} />
-          <p className="mrw-ndot" style={{ margin: 0, fontSize: 9, letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--mrw-w-45)" }}>
-            ivanmi studios · {year}
-          </p>
+          <img src="/ivanmi-logo.png" alt="ivanmi studios" style={{ height: 59, width: "auto", opacity: 0.95 }} />
         </footer>
       </div>
     </div>
