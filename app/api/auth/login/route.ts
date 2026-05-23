@@ -1,32 +1,25 @@
 import { NextResponse } from "next/server"
-import { createHash, randomBytes } from "crypto"
+import { createSessionToken, verifyPassword, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/auth"
 
 export async function POST(request: Request) {
   try {
-    const { pin } = await request.json()
+    const { password } = await request.json()
 
-    if (!pin || typeof pin !== "string") {
-      return NextResponse.json({ error: "PIN requerido" }, { status: 400 })
+    if (!verifyPassword(password)) {
+      return NextResponse.json({ error: "Contraseña incorrecta" }, { status: 401 })
     }
 
-    const authPin = process.env.AUTH_PIN
-    if (!authPin) {
-      return NextResponse.json({ error: "Auth no configurado en servidor" }, { status: 500 })
-    }
-
-    const inputHash = createHash("sha256").update(pin.trim()).digest("hex")
-    const correctHash = createHash("sha256").update(authPin).digest("hex")
-
-    if (inputHash !== correctHash) {
-      return NextResponse.json({ error: "PIN incorrecto" }, { status: 401 })
-    }
-
-    const tokenData = `${Date.now()}-${randomBytes(32).toString("hex")}`
-    const token = createHash("sha256").update(tokenData).digest("hex")
-    const verificationHash = createHash("sha256").update(token + authPin).digest("hex")
-
-    return NextResponse.json({ token, verification: verificationHash })
-  } catch (error) {
+    const token = await createSessionToken()
+    const response = NextResponse.json({ success: true })
+    response.cookies.set(SESSION_COOKIE, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_MAX_AGE,
+    })
+    return response
+  } catch {
     return NextResponse.json({ error: "Error interno" }, { status: 500 })
   }
 }

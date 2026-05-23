@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { requireAdmin } from "@/lib/auth"
 
 export async function PATCH(request: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const { id, is_ai } = await request.json()
     if (!id || typeof is_ai !== "boolean") {

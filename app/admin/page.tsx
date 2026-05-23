@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { SpotifyDateForm } from "@/components/spotify-date-form"
 import { ManualEntryForm } from "@/components/manual-entry-form"
 import { SyncManager } from "@/components/sync-manager"
@@ -22,16 +23,31 @@ type TabId = (typeof tabs)[number]["id"]
 
 function AdminPanel() {
   const [activeTab, setActiveTab] = useState<TabId>("date")
+  const router = useRouter()
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" })
+    router.push("/login")
+    router.refresh()
+  }
 
   return (
     <main className="min-h-screen bg-background font-sans">
       <div className="max-w-[28rem] mx-auto px-6 pt-16 pb-24">
-        <Link
-          href="/"
-          className="font-mono text-[0.6rem] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors inline-block mb-10"
-        >
-          ← Back
-        </Link>
+        <div className="flex items-center justify-between mb-10">
+          <Link
+            href="/"
+            className="font-mono text-[0.6rem] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors"
+          >
+            ← Back
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="font-mono text-[0.6rem] tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Cerrar sesión
+          </button>
+        </div>
 
         <h1 className="font-sans font-medium text-[clamp(1.8rem,5vw,2.5rem)] tracking-[-0.03em] leading-none text-foreground mb-10">
           Admin

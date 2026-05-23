@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { getSpotifyTrack } from "@/lib/spotify"
+import { requireAdmin } from "@/lib/auth"
 
 export async function POST(request: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const body = await request.json()
     const { trackId, customDate, manual, trackName, artistName, albumName } = body
