@@ -1,17 +1,15 @@
 "use client"
 
 import { Suspense, useState } from "react"
-import { useSearchParams } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { useRouter, useSearchParams } from "next/navigation"
 
 function LoginForm() {
+  const router = useRouter()
   const params = useSearchParams()
   const next = params.get("next") || "/admin"
-  const initialError = params.get("error") ? "El enlace no es válido o ha caducado. Inténtalo de nuevo." : ""
 
-  const [email, setEmail] = useState("")
-  const [sent, setSent] = useState(false)
-  const [error, setError] = useState(initialError)
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -20,17 +18,18 @@ function LoginForm() {
     setIsLoading(true)
 
     try {
-      const supabase = createClient()
-      const emailRedirectTo = `${window.location.origin}/auth/confirm?next=${encodeURIComponent(next)}`
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: { shouldCreateUser: false, emailRedirectTo },
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
       })
 
-      if (error) {
-        setError("No se pudo enviar el enlace de acceso.")
+      if (res.ok) {
+        router.push(next)
+        router.refresh()
       } else {
-        setSent(true)
+        setError("Contraseña incorrecta")
+        setPassword("")
       }
     } catch {
       setError("Error de conexión")
@@ -45,55 +44,32 @@ function LoginForm() {
         <h1 className="font-sans font-medium text-[1.8rem] tracking-[-0.03em] leading-none text-foreground mb-2">
           Acceso Restringido
         </h1>
+        <p className="font-mono text-[0.7rem] text-muted-foreground mb-12">Introduce la contraseña de acceso</p>
 
-        {sent ? (
-          <>
-            <p className="font-mono text-[0.7rem] text-muted-foreground mb-12 leading-relaxed">
-              Te hemos enviado un enlace de acceso. Revisa tu correo y ábrelo en este dispositivo.
-            </p>
-            <button
-              onClick={() => {
-                setSent(false)
-                setEmail("")
-              }}
-              className="font-mono text-[0.65rem] tracking-[0.12em] uppercase text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Usar otro correo
-            </button>
-          </>
-        ) : (
-          <>
-            <p className="font-mono text-[0.7rem] text-muted-foreground mb-12">
-              Introduce tu correo para recibir un enlace de acceso
-            </p>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              setError("")
+            }}
+            placeholder="••••••••"
+            autoComplete="current-password"
+            className="w-full text-center bg-transparent border-b-[1.5px] border-border py-4 text-[1.25rem] tracking-[0.2em] focus:outline-none focus:border-foreground transition-colors text-foreground mb-8"
+            autoFocus
+          />
 
-            <form onSubmit={handleSubmit}>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value)
-                  setError("")
-                }}
-                placeholder="tu@correo.com"
-                autoComplete="email"
-                required
-                className="w-full text-center bg-transparent border-b-[1.5px] border-border py-4 text-[1rem] focus:outline-none focus:border-foreground transition-colors text-foreground mb-8"
-                autoFocus
-              />
+          {error && <p className="font-mono text-[0.65rem] text-red-600 mb-4">{error}</p>}
 
-              {error && <p className="font-mono text-[0.65rem] text-red-600 mb-4">{error}</p>}
-
-              <button
-                type="submit"
-                disabled={!email || isLoading}
-                className="w-full py-[0.85rem] bg-foreground text-background font-mono text-[0.7rem] tracking-[0.12em] uppercase hover:opacity-85 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
-              >
-                {isLoading ? "Enviando..." : "Enviar enlace"}
-              </button>
-            </form>
-          </>
-        )}
+          <button
+            type="submit"
+            disabled={!password || isLoading}
+            className="w-full py-[0.85rem] bg-foreground text-background font-mono text-[0.7rem] tracking-[0.12em] uppercase hover:opacity-85 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+          >
+            {isLoading ? "Verificando..." : "Acceder"}
+          </button>
+        </form>
       </div>
     </main>
   )

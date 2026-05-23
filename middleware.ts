@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { updateSession } from "@/lib/supabase/middleware"
+import { SESSION_COOKIE, verifySession } from "@/lib/auth"
 
 // Read-only endpoints that stay public regardless of auth.
 const PUBLIC_API: { path: string; method: string }[] = [
@@ -12,20 +12,19 @@ export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
   const method = request.method
 
-  // Skip auth work entirely for the public read-only API allowlist.
+  // Public read-only API allowlist → no auth needed.
   if (pathname.startsWith("/api/songs") && PUBLIC_API.some((p) => p.path === pathname && p.method === method)) {
     return NextResponse.next()
   }
 
-  const { response, user } = await updateSession(request)
-  const authed = !!user && user.email === process.env.ADMIN_EMAIL
+  const authed = await verifySession(request.cookies.get(SESSION_COOKIE)?.value)
 
   // Any other /api/songs/* request is a mutation → require the owner.
   if (pathname.startsWith("/api/songs")) {
     if (!authed) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-    return response
+    return NextResponse.next()
   }
 
   // Admin pages → redirect to login, preserving the intended destination.
@@ -35,7 +34,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  return response
+  return NextResponse.next()
 }
 
 export const config = {

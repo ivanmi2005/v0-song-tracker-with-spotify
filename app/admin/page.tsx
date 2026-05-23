@@ -3,7 +3,6 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
 import { SpotifyDateForm } from "@/components/spotify-date-form"
 import { ManualEntryForm } from "@/components/manual-entry-form"
 import { SyncManager } from "@/components/sync-manager"
@@ -27,8 +26,7 @@ function AdminPanel() {
   const router = useRouter()
 
   async function handleLogout() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    await fetch("/api/auth/logout", { method: "POST" })
     router.push("/login")
     router.refresh()
   }
