@@ -163,6 +163,7 @@
   background: var(--mrw-blue);
   color: var(--mrw-white);
   min-height: 100vh;
+  overflow-x: clip;
   animation: mrwFadeIn 0.5s ease both;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

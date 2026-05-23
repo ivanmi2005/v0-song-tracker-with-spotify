@@ -26,6 +26,7 @@ export interface MrwStats {
   heaviestDay: { date: string; count: number } | null
   lastPosted: { title: string; artist: string } | null
   topArtists: { name: string; count: number }[]
+  topSongs: { title: string; artist: string; count: number }[]
   heroTimeLabel: string
   firstSongDate: string
 }
@@ -183,9 +184,7 @@ function DayBlockTimeline({ group }: { group: MrwGroup }) {
                     fontStyle: "italic",
                     lineHeight: 1.2,
                     color: "var(--mrw-white)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
+                    overflowWrap: "anywhere",
                   }}
                 >
                   {s.title}
@@ -196,9 +195,7 @@ function DayBlockTimeline({ group }: { group: MrwGroup }) {
                     margin: "3px 0 0",
                     fontSize: 13.5,
                     color: "var(--mrw-w-60)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
+                    overflowWrap: "anywhere",
                   }}
                 >
                   {s.artist}
@@ -260,8 +257,6 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
   const [artist, setArtist] = useState("all")
   const [showFilters, setShowFilters] = useState(false)
 
-  const year = new Date().getFullYear()
-
   const filtered = groups
     .filter((g) => month === "all" || monthKey(g.date) === month)
     .map((g) => ({
@@ -281,6 +276,7 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
   const lastGroup = groups[0]
   const lastSong = lastGroup?.songs[0]
   const maxArtist = stats.topArtists[0]?.count || 1
+  const maxSong = stats.topSongs[0]?.count || 1
 
   const scrollToStats = () => {
     const el = document.getElementById("mrw-stats")
@@ -298,12 +294,12 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
             className="mrw-ndot"
             style={{ margin: 0, fontSize: 10, letterSpacing: "0.34em", textTransform: "uppercase", color: "var(--mrw-w-45)" }}
           >
-            posting history · {year}
+            posting history · 2025/2026
           </p>
           <h1
             className="mrw-ndot"
             style={{
-              margin: "32px 0 18px",
+              margin: "32px 0 32px",
               fontSize: "clamp(48px, 11vw, 84px)",
               lineHeight: 0.92,
               letterSpacing: "0.02em",
@@ -315,9 +311,6 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
             <br />
             Ruggeri
           </h1>
-          <p className="mrw-serif" style={{ margin: "0 0 32px", fontSize: 18, fontStyle: "italic", color: "var(--mrw-w-80)" }}>
-            posting history · 2025/2026
-          </p>
 
           <div style={{ display: "inline-flex", alignItems: "center", gap: 14 }}>
             <button
@@ -373,7 +366,7 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
               className="mrw-ndot"
               style={{ margin: "10px 0 32px", fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--mrw-w-60)" }}
             >
-              ⤿ Impulsed by Opium
+              Impulsed by Opium
             </p>
 
             {lastSong.spotify ? (
@@ -591,7 +584,7 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
                     <p className="mrw-ndot" style={{ margin: 0, fontSize: 12, color: "var(--mrw-w-45)" }}>
                       {String(i + 1).padStart(2, "0")}
                     </p>
-                    <div style={{ position: "relative", height: 28, display: "flex", alignItems: "center" }}>
+                    <div style={{ position: "relative", minHeight: 28, display: "flex", alignItems: "center" }}>
                       <div style={{ position: "absolute", inset: 0, background: "var(--mrw-w-12)", width: `${pct}%` }} />
                       <p
                         className="mrw-serif"
@@ -600,12 +593,9 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
                           fontSize: 17,
                           fontStyle: "italic",
                           position: "relative",
-                          paddingLeft: 10,
+                          padding: "4px 8px 4px 10px",
                           color: "var(--mrw-white)",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          maxWidth: "100%",
+                          overflowWrap: "anywhere",
                         }}
                       >
                         {a.name}
@@ -613,6 +603,54 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
                     </div>
                     <p className="mrw-ndot" style={{ margin: 0, fontSize: 12, color: "var(--mrw-white)", textAlign: "right" }}>
                       ×{a.count}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 56 }}>
+            <p className="mrw-ndot" style={{ margin: "0 0 24px", fontSize: 10, letterSpacing: "0.32em", color: "var(--mrw-w-45)" }}>
+              ## TOP SONGS
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {stats.topSongs.map((s, i) => {
+                const pct = (s.count / maxSong) * 100
+                return (
+                  <div
+                    key={`${s.title}-${i}`}
+                    style={{ display: "grid", gridTemplateColumns: "24px 1fr 44px", gap: 12, alignItems: "center" }}
+                  >
+                    <p className="mrw-ndot" style={{ margin: 0, fontSize: 12, color: "var(--mrw-w-45)" }}>
+                      {String(i + 1).padStart(2, "0")}
+                    </p>
+                    <div style={{ position: "relative", minHeight: 28, display: "flex", alignItems: "center" }}>
+                      <div style={{ position: "absolute", inset: 0, background: "var(--mrw-w-12)", width: `${pct}%` }} />
+                      <div style={{ position: "relative", padding: "4px 8px 4px 10px", minWidth: 0 }}>
+                        <p
+                          className="mrw-serif"
+                          style={{
+                            margin: 0,
+                            fontSize: 16,
+                            fontStyle: "italic",
+                            lineHeight: 1.2,
+                            color: "var(--mrw-white)",
+                            overflowWrap: "anywhere",
+                          }}
+                        >
+                          {s.title}
+                        </p>
+                        <p
+                          className="mrw-serif"
+                          style={{ margin: "2px 0 0", fontSize: 12, color: "var(--mrw-w-60)", overflowWrap: "anywhere" }}
+                        >
+                          {s.artist}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="mrw-ndot" style={{ margin: 0, fontSize: 12, color: "var(--mrw-white)", textAlign: "right" }}>
+                      ×{s.count}
                     </p>
                   </div>
                 )
@@ -643,10 +681,7 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
           >
             * Tracking before 18/12/2025 may be inaccurate and is not included in the average calculation.
           </p>
-          <img src="/ivanmi-logo.png" alt="ivanmi studios" style={{ height: 44, width: "auto", opacity: 0.95 }} />
-          <p className="mrw-ndot" style={{ margin: 0, fontSize: 9, letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--mrw-w-45)" }}>
-            ivanmi studios · {year}
-          </p>
+          <img src="/ivanmi-logo.png" alt="ivanmi studios" style={{ height: 72, width: "auto", opacity: 0.95 }} />
         </footer>
       </div>
     </div>

@@ -107,6 +107,20 @@ export default async function Home() {
     .slice(0, 8)
     .map(([name, count]) => ({ name, count }))
 
+  // Top songs weighted by number of postings (play count per track).
+  const songCounts = new Map<string, { title: string; artist: string; count: number }>()
+  for (const song of allSongs) {
+    const existing = songCounts.get(song.spotify_track_id)
+    if (existing) {
+      existing.count += 1
+    } else {
+      songCounts.set(song.spotify_track_id, { title: song.track_name, artist: song.artist_name, count: 1 })
+    }
+  }
+  const topSongs = Array.from(songCounts.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+
   const heaviestDay = groups.reduce<{ date: string; count: number } | null>((max, g) => {
     if (!max || g.songs.length > max.count) return { date: g.date, count: g.songs.length }
     return max
@@ -123,6 +137,7 @@ export default async function Home() {
     heaviestDay,
     lastPosted: latest ? { title: latest.track_name, artist: latest.artist_name } : null,
     topArtists,
+    topSongs,
     heroTimeLabel: latest ? getHeroTimeLabel(latest.added_at) : "",
     firstSongDate: getFirstSongDate(allSongs),
   }
