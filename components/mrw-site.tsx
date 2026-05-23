@@ -26,6 +26,7 @@ export interface MrwStats {
   heaviestDay: { date: string; count: number } | null
   lastPosted: { title: string; artist: string } | null
   topArtists: { name: string; count: number }[]
+  topSongs: { title: string; artist: string; count: number }[]
   heroTimeLabel: string
   firstSongDate: string
 }
@@ -275,6 +276,7 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
   const lastGroup = groups[0]
   const lastSong = lastGroup?.songs[0]
   const maxArtist = stats.topArtists[0]?.count || 1
+  const maxSong = stats.topSongs[0]?.count || 1
 
   const scrollToStats = () => {
     const el = document.getElementById("mrw-stats")
@@ -601,6 +603,54 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
                     </div>
                     <p className="mrw-ndot" style={{ margin: 0, fontSize: 12, color: "var(--mrw-white)", textAlign: "right" }}>
                       ×{a.count}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 56 }}>
+            <p className="mrw-ndot" style={{ margin: "0 0 24px", fontSize: 10, letterSpacing: "0.32em", color: "var(--mrw-w-45)" }}>
+              ## TOP SONGS
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {stats.topSongs.map((s, i) => {
+                const pct = (s.count / maxSong) * 100
+                return (
+                  <div
+                    key={`${s.title}-${i}`}
+                    style={{ display: "grid", gridTemplateColumns: "24px 1fr 44px", gap: 12, alignItems: "center" }}
+                  >
+                    <p className="mrw-ndot" style={{ margin: 0, fontSize: 12, color: "var(--mrw-w-45)" }}>
+                      {String(i + 1).padStart(2, "0")}
+                    </p>
+                    <div style={{ position: "relative", minHeight: 28, display: "flex", alignItems: "center" }}>
+                      <div style={{ position: "absolute", inset: 0, background: "var(--mrw-w-12)", width: `${pct}%` }} />
+                      <div style={{ position: "relative", padding: "4px 8px 4px 10px", minWidth: 0 }}>
+                        <p
+                          className="mrw-serif"
+                          style={{
+                            margin: 0,
+                            fontSize: 16,
+                            fontStyle: "italic",
+                            lineHeight: 1.2,
+                            color: "var(--mrw-white)",
+                            overflowWrap: "anywhere",
+                          }}
+                        >
+                          {s.title}
+                        </p>
+                        <p
+                          className="mrw-serif"
+                          style={{ margin: "2px 0 0", fontSize: 12, color: "var(--mrw-w-60)", overflowWrap: "anywhere" }}
+                        >
+                          {s.artist}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="mrw-ndot" style={{ margin: 0, fontSize: 12, color: "var(--mrw-white)", textAlign: "right" }}>
+                      ×{s.count}
                     </p>
                   </div>
                 )
