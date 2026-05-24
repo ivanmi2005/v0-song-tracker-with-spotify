@@ -13,7 +13,7 @@ interface OrbitSlot {
   fade: boolean
 }
 
-const SLOT_COUNT = 11
+const SLOT_COUNT = 16
 const FALLBACK_FIGURE = "/ruggeri-cutout.png"
 
 function rand(min: number, max: number) {
@@ -43,18 +43,22 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp" }: Cove
 
     const measure = () => {
       const w = sceneRef.current?.clientWidth ?? 600
-      const maxR = Math.max(120, w / 2 - 28)
-      const minR = maxR * 0.55
+      const maxR = Math.max(120, w / 2 - 24)
+      const minR = maxR * 0.42
       setSlots((prev) => {
         const built: OrbitSlot[] = []
         for (let i = 0; i < SLOT_COUNT; i++) {
+          // 4 anillos: cada uno con 4 portadas a 90° (fases uniformes → no se amontonan).
+          const ring = i % 4
+          const band = ring / 3
+          const duration = 24 + ring * 4 // velocidad distinta por anillo (parallax)
           built.push({
             id: i,
-            radius: rand(minR, maxR),
-            size: rand(34, 60),
-            duration: rand(16, 30),
-            delay: -rand(0, 30),
-            reverse: i % 2 === 0,
+            radius: minR + band * (maxR - minR) + rand(-10, 10),
+            size: rand(28, 54),
+            duration,
+            delay: -(i / SLOT_COUNT) * duration, // reparto angular uniforme
+            reverse: false,
             cover: prev[i]?.cover ?? pick(covers),
             fade: false,
           })
