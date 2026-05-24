@@ -131,15 +131,45 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp" }: Cove
         </div>
       ))}
 
-      {/* Figura central */}
-      <div style={{ position: "relative", zIndex: 3, height: "100%", display: "flex", alignItems: "flex-end" }}>
+      {/* Figura central en dos capas:
+          - cara/cabeza por delante de las portadas
+          - cuerpo por detrás de las portadas */}
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", justifyContent: "center", pointerEvents: "none" }}>
+        <img
+          src={figureSrc}
+          alt=""
+          aria-hidden="true"
+          onError={() => {
+            if (figureSrc !== FALLBACK_FIGURE) setFigureSrc(FALLBACK_FIGURE)
+          }}
+          style={{
+            position: "absolute",
+            bottom: 0,
+            height: "100%",
+            width: "auto",
+            display: "block",
+            objectFit: "contain",
+            zIndex: 2,
+            clipPath: "inset(45% 0 0 0)",
+          }}
+        />
+
         <img
           src={figureSrc}
           alt="Matteo Ruggeri"
           onError={() => {
             if (figureSrc !== FALLBACK_FIGURE) setFigureSrc(FALLBACK_FIGURE)
           }}
-          style={{ height: "100%", width: "auto", display: "block", objectFit: "contain" }}
+          style={{
+            position: "absolute",
+            bottom: 0,
+            height: "100%",
+            width: "auto",
+            display: "block",
+            objectFit: "contain",
+            zIndex: 6,
+            clipPath: "inset(0 0 55% 0)",
+          }}
         />
       </div>
     </div>
