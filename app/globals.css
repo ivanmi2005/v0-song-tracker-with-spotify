@@ -224,7 +224,7 @@
 /* Pasa por detrás (z bajo) la primera mitad del giro y por delante la segunda. */
 @keyframes mrw-orbit-z {
   0% {
-    z-index: 1;
+    z-index: 3;
   }
   50% {
     z-index: 5;
