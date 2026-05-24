@@ -29,7 +29,7 @@ interface CoverOrbitProps {
   imageSrc?: string
 }
 
-export function CoverOrbit({ covers, imageSrc = "/ruggeri-cutout.png" }: CoverOrbitProps) {
+export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp" }: CoverOrbitProps) {
   const sceneRef = useRef<HTMLDivElement>(null)
   const [slots, setSlots] = useState<OrbitSlot[]>([])
   const [figureSrc, setFigureSrc] = useState(imageSrc)
@@ -98,8 +98,9 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-cutout.png" }: CoverOr
         display: "flex",
         alignItems: "flex-end",
         justifyContent: "center",
+        isolation: "isolate",
         // @ts-expect-error CSS custom property
-        "--orbit-cy": "42%",
+        "--orbit-cy": "40%",
       }}
     >
       {slots.map((s) => (
@@ -111,9 +112,10 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-cutout.png" }: CoverOr
             height: s.size,
             marginTop: -s.size / 2,
             marginLeft: -s.size / 2,
+            zIndex: 5,
             // @ts-expect-error CSS custom property
             "--r": `${s.radius}px`,
-            animation: `mrw-orbit ${s.duration}s linear ${s.delay}s infinite ${s.reverse ? "reverse" : "normal"}, mrw-orbit-z ${s.duration}s step-end ${s.delay}s infinite ${s.reverse ? "reverse" : "normal"}`,
+            animation: `mrw-orbit ${s.duration}s linear ${s.delay}s infinite ${s.reverse ? "reverse" : "normal"}`,
           }}
         >
           <img
@@ -131,47 +133,50 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-cutout.png" }: CoverOr
         </div>
       ))}
 
-      {/* Figura central en dos capas:
-          - cara/cabeza por delante de las portadas
-          - cuerpo por detrás de las portadas */}
-      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", justifyContent: "center", pointerEvents: "none" }}>
-        <img
-          src={figureSrc}
-          alt=""
-          aria-hidden="true"
-          onError={() => {
-            if (figureSrc !== FALLBACK_FIGURE) setFigureSrc(FALLBACK_FIGURE)
-          }}
-          style={{
-            position: "absolute",
-            bottom: 0,
-            height: "100%",
-            width: "auto",
-            display: "block",
-            objectFit: "contain",
-            zIndex: 2,
-            clipPath: "inset(45% 0 0 0)",
-          }}
-        />
-
-        <img
-          src={figureSrc}
-          alt="Matteo Ruggeri"
-          onError={() => {
-            if (figureSrc !== FALLBACK_FIGURE) setFigureSrc(FALLBACK_FIGURE)
-          }}
-          style={{
-            position: "absolute",
-            bottom: 0,
-            height: "100%",
-            width: "auto",
-            display: "block",
-            objectFit: "contain",
-            zIndex: 6,
-            clipPath: "inset(0 0 55% 0)",
-          }}
-        />
-      </div>
+      {/* Figura en dos capas:
+          - cuerpo completo por DETRÁS de las portadas (z2)
+          - cabeza duplicada por DELANTE de las portadas (z7) → las portadas
+            pasan por delante del torso y por detrás de la cabeza */}
+      <img
+        src={figureSrc}
+        alt="Matteo Ruggeri"
+        onError={() => {
+          if (figureSrc !== FALLBACK_FIGURE) setFigureSrc(FALLBACK_FIGURE)
+        }}
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: "50%",
+          transform: "translateX(-50%)",
+          height: "100%",
+          width: "auto",
+          display: "block",
+          objectFit: "contain",
+          zIndex: 2,
+          pointerEvents: "none",
+        }}
+      />
+      <img
+        src={figureSrc}
+        alt=""
+        aria-hidden="true"
+        onError={() => {
+          if (figureSrc !== FALLBACK_FIGURE) setFigureSrc(FALLBACK_FIGURE)
+        }}
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: "50%",
+          transform: "translateX(-50%)",
+          height: "100%",
+          width: "auto",
+          display: "block",
+          objectFit: "contain",
+          zIndex: 7,
+          clipPath: "inset(0 0 55% 0)",
+          pointerEvents: "none",
+        }}
+      />
     </div>
   )
 }
