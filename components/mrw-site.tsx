@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { TwitterEmbed } from "@/components/twitter-embed"
+import { CoverOrbit } from "@/components/cover-orbit"
 
 export interface MrwSong {
   title: string
@@ -278,6 +279,12 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
   const maxArtist = stats.topArtists[0]?.count || 1
   const maxSong = stats.topSongs[0]?.count || 1
 
+  const orbitCovers = useMemo(() => {
+    const set = new Set<string>()
+    groups.forEach((g) => g.songs.forEach((s) => s.cover && set.add(s.cover)))
+    return [...set]
+  }, [groups])
+
   const scrollToStats = () => {
     const el = document.getElementById("mrw-stats")
     if (!el) return
@@ -288,8 +295,11 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
   return (
     <div className="mrw-page" style={{ padding: "64px 32px 0" }}>
       <div style={{ maxWidth: 620, margin: "0 auto" }}>
+        {/* ── INTRO COVER (orbital) ── */}
+        <CoverOrbit covers={orbitCovers} />
+
         {/* ── HERO ── */}
-        <header style={{ textAlign: "center", paddingTop: 24, paddingBottom: 88 }}>
+        <header style={{ textAlign: "center", paddingTop: 8, paddingBottom: 88 }}>
           <p
             className="mrw-ndot"
             style={{ margin: 0, fontSize: 10, letterSpacing: "0.34em", textTransform: "uppercase", color: "var(--mrw-w-45)" }}
