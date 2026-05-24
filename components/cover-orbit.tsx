@@ -29,7 +29,7 @@ interface CoverOrbitProps {
   imageSrc?: string
 }
 
-export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.png" }: CoverOrbitProps) {
+export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp" }: CoverOrbitProps) {
   const sceneRef = useRef<HTMLDivElement>(null)
   const [slots, setSlots] = useState<OrbitSlot[]>([])
   const [figureSrc, setFigureSrc] = useState(imageSrc)
