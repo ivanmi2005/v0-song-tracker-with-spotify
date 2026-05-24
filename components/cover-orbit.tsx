@@ -131,7 +131,7 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp" }: Cove
         </div>
       ))}
 
-      {/* Figura central con filtro azul */}
+      {/* Figura central */}
       <div style={{ position: "relative", zIndex: 3, height: "100%", display: "flex", alignItems: "flex-end" }}>
         <img
           src={figureSrc}
@@ -140,25 +140,6 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp" }: Cove
             if (figureSrc !== FALLBACK_FIGURE) setFigureSrc(FALLBACK_FIGURE)
           }}
           style={{ height: "100%", width: "auto", display: "block", objectFit: "contain" }}
-        />
-        <div
-          aria-hidden
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "var(--mrw-blue)",
-            mixBlendMode: "color",
-            opacity: 0.8,
-            WebkitMaskImage: `url(${figureSrc})`,
-            maskImage: `url(${figureSrc})`,
-            WebkitMaskSize: "contain",
-            maskSize: "contain",
-            WebkitMaskRepeat: "no-repeat",
-            maskRepeat: "no-repeat",
-            WebkitMaskPosition: "center bottom",
-            maskPosition: "center bottom",
-            pointerEvents: "none",
-          }}
         />
       </div>
     </div>
