@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { TwitterEmbed } from "@/components/twitter-embed"
 import { CoverOrbit } from "@/components/cover-orbit"
+import { X } from "lucide-react"
 
 export interface MrwSong {
   title: string
@@ -692,6 +693,25 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
             * Tracking before 18/12/2025 may be inaccurate and is not included in the average calculation.
           </p>
           <img src="/ivanmi-logo.png" alt="ivanmi studios" style={{ height: 72, width: "auto", opacity: 0.95 }} />
+          <a
+            href="https://x.com/ivaanmi"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 40,
+              height: 40,
+              color: "var(--mrw-white)",
+              textDecoration: "none",
+              transition: "opacity .15s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+          >
+            <X size={24} strokeWidth={1.5} />
+          </a>
         </footer>
       </div>
     </div>
