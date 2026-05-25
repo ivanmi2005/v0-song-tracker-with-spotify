@@ -692,6 +692,17 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
             * Tracking before 18/12/2025 may be inaccurate and is not included in the average calculation.
           </p>
           <img src="/ivanmi-logo.png" alt="ivanmi studios" style={{ height: 72, width: "auto", opacity: 0.95 }} />
+          <a
+            href="https://x.com/ivaanmi"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Perfil de X de @ivaanmi"
+            style={{ color: "var(--mrw-w-70)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="currentColor">
+              <path d="M18.244 2H21l-6.571 7.51L22 22h-5.956l-4.662-6.104L6.04 22H3.282l7.027-8.03L2 2h6.107l4.214 5.564L18.244 2Zm-0.967 18.35h1.527L7.278 3.564H5.64L17.277 20.35Z" />
+            </svg>
+          </a>
         </footer>
       </div>
     </div>
