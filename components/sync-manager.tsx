@@ -118,11 +118,11 @@ export function SyncManager() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ input: query }),
         })
-        const data = await previewRes.json()
         if (!previewRes.ok) {
           sileo.error({ title: `No encontrada en Spotify: "${query}"` })
           return false
         }
+        const data = await previewRes.json()
         const updateRes = await fetch("/api/songs/sync", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
