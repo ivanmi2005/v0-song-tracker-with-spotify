@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ track })
+    return NextResponse.json(track)
   } catch {
     return NextResponse.json({ error: "Error al buscar la canción" }, { status: 500 })
   }
