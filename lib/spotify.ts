@@ -12,53 +12,69 @@ export interface SpotifyTrack {
   }
 }
 
-interface SpotifySearchResult {
-  tracks: {
-    items: SpotifyTrack[]
+// Using wolfXspotify API (free, no credentials required)
+// https://github.com/WOLFTECH-254/wolfXspotify-API
+const WOLF_API_BASE = "https://wolfxspotify.vercel.app/api"
+
+interface WolfTrackResponse {
+  success: boolean
+  track: {
+    id: string
+    name: string
+    artists: string[]
+    album: string
+    thumbnail: string
+    duration_ms: number
+    release_date: string
+    explicit: boolean
+    preview_url: string | null
+    external_url: string
   }
 }
 
-// Cache the access token (lasts ~3600s)
-let cachedToken: { value: string; expiresAt: number } | null = null
+interface WolfSearchResponse {
+  success: boolean
+  results: {
+    id: string
+    name: string
+    artists: string[]
+    album: string
+    thumbnail: string
+    duration_ms: number
+    explicit: boolean
+    preview_url: string | null
+    external_url: string
+  }[]
+}
 
-async function getAccessToken(): Promise<string | null> {
-  if (cachedToken && Date.now() < cachedToken.expiresAt) {
-    return cachedToken.value
+function transformWolfTrackToSpotify(wolfTrack: WolfTrackResponse["track"] | WolfSearchResponse["results"][0]): SpotifyTrack {
+  return {
+    id: wolfTrack.id,
+    name: wolfTrack.name,
+    artists: wolfTrack.artists.map(name => ({ name })),
+    album: {
+      name: wolfTrack.album,
+      images: wolfTrack.thumbnail ? [{ url: wolfTrack.thumbnail, height: 300, width: 300 }] : [],
+    },
+    preview_url: wolfTrack.preview_url,
+    external_urls: {
+      spotify: wolfTrack.external_url || `https://open.spotify.com/track/${wolfTrack.id}`,
+    },
   }
-
-  const res = await fetch("https://accounts.spotify.com/api/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "client_credentials",
-      client_id: process.env.SPOTIFY_CLIENT_ID || "",
-      client_secret: process.env.SPOTIFY_CLIENT_SECRET || "",
-    }),
-    cache: "no-store",
-  })
-
-  if (!res.ok) return null
-
-  const data = await res.json()
-  cachedToken = {
-    value: data.access_token,
-    expiresAt: Date.now() + (data.expires_in - 60) * 1000, // refresh 60s early
-  }
-  return cachedToken.value
 }
 
 export async function getSpotifyTrack(trackId: string): Promise<SpotifyTrack | null> {
   try {
-    const token = await getAccessToken()
-    if (!token) return null
-
-    const res = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const res = await fetch(`${WOLF_API_BASE}/track/${trackId}`, {
       cache: "no-store",
     })
 
     if (!res.ok) return null
-    return await res.json()
+
+    const data: WolfTrackResponse = await res.json()
+    if (!data.success || !data.track) return null
+
+    return transformWolfTrackToSpotify(data.track)
   } catch {
     return null
   }
@@ -66,25 +82,23 @@ export async function getSpotifyTrack(trackId: string): Promise<SpotifyTrack | n
 
 export async function searchSpotifyTrack(query: string): Promise<SpotifyTrack | null> {
   try {
-    const token = await getAccessToken()
-    if (!token) return null
-
     const res = await fetch(
-      `https://api.spotify.com/v1/search?${new URLSearchParams({
+      `${WOLF_API_BASE}/search?${new URLSearchParams({
         q: query,
         type: "track",
         limit: "1",
       })}`,
       {
-        headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
       },
     )
 
     if (!res.ok) return null
 
-    const data: SpotifySearchResult = await res.json()
-    return data.tracks.items[0] || null
+    const data: WolfSearchResponse = await res.json()
+    if (!data.success || !data.results?.length) return null
+
+    return transformWolfTrackToSpotify(data.results[0])
   } catch {
     return null
   }
