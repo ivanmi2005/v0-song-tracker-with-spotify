@@ -12,9 +12,15 @@ export interface SpotifyTrack {
   }
 }
 
-// Using wolfXspotify API (free, no credentials required)
+// Using wolfXspotify API (free, no credentials required) with Spotify API as fallback
 // https://github.com/WOLFTECH-254/wolfXspotify-API
 const WOLF_API_BASE = "https://wolfxspotify.vercel.app/api"
+
+interface SpotifySearchResult {
+  tracks: {
+    items: SpotifyTrack[]
+  }
+}
 
 interface WolfTrackResponse {
   success: boolean
@@ -47,6 +53,39 @@ interface WolfSearchResponse {
   }[]
 }
 
+// Cache the access token (lasts ~3600s) for Spotify API fallback
+let cachedToken: { value: string; expiresAt: number } | null = null
+
+async function getAccessToken(): Promise<string | null> {
+  if (cachedToken && Date.now() < cachedToken.expiresAt) {
+    return cachedToken.value
+  }
+
+  try {
+    const res = await fetch("https://accounts.spotify.com/api/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: process.env.SPOTIFY_CLIENT_ID || "",
+        client_secret: process.env.SPOTIFY_CLIENT_SECRET || "",
+      }),
+      cache: "no-store",
+    })
+
+    if (!res.ok) return null
+
+    const data = await res.json()
+    cachedToken = {
+      value: data.access_token,
+      expiresAt: Date.now() + (data.expires_in - 60) * 1000,
+    }
+    return cachedToken.value
+  } catch {
+    return null
+  }
+}
+
 function transformWolfTrackToSpotify(wolfTrack: WolfTrackResponse["track"] | WolfSearchResponse["results"][0]): SpotifyTrack {
   return {
     id: wolfTrack.id,
@@ -64,23 +103,42 @@ function transformWolfTrackToSpotify(wolfTrack: WolfTrackResponse["track"] | Wol
 }
 
 export async function getSpotifyTrack(trackId: string): Promise<SpotifyTrack | null> {
+  // Try wolfXspotify first
   try {
     const res = await fetch(`${WOLF_API_BASE}/track/${trackId}`, {
       cache: "no-store",
     })
 
+    if (res.ok) {
+      const data: WolfTrackResponse = await res.json()
+      if (data.success && data.track) {
+        return transformWolfTrackToSpotify(data.track)
+      }
+    }
+  } catch (error) {
+    console.error("[v0] wolfXspotify API error:", error)
+  }
+
+  // Fallback to official Spotify API
+  try {
+    const token = await getAccessToken()
+    if (!token) return null
+
+    const res = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    })
+
     if (!res.ok) return null
-
-    const data: WolfTrackResponse = await res.json()
-    if (!data.success || !data.track) return null
-
-    return transformWolfTrackToSpotify(data.track)
-  } catch {
+    return await res.json()
+  } catch (error) {
+    console.error("[v0] Spotify API error:", error)
     return null
   }
 }
 
 export async function searchSpotifyTrack(query: string): Promise<SpotifyTrack | null> {
+  // Try wolfXspotify first
   try {
     const res = await fetch(
       `${WOLF_API_BASE}/search?${new URLSearchParams({
@@ -93,13 +151,39 @@ export async function searchSpotifyTrack(query: string): Promise<SpotifyTrack | 
       },
     )
 
+    if (res.ok) {
+      const data: WolfSearchResponse = await res.json()
+      if (data.success && data.results?.length) {
+        return transformWolfTrackToSpotify(data.results[0])
+      }
+    }
+  } catch (error) {
+    console.error("[v0] wolfXspotify search error:", error)
+  }
+
+  // Fallback to official Spotify API
+  try {
+    const token = await getAccessToken()
+    if (!token) return null
+
+    const res = await fetch(
+      `https://api.spotify.com/v1/search?${new URLSearchParams({
+        q: query,
+        type: "track",
+        limit: "1",
+      })}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      },
+    )
+
     if (!res.ok) return null
 
-    const data: WolfSearchResponse = await res.json()
-    if (!data.success || !data.results?.length) return null
-
-    return transformWolfTrackToSpotify(data.results[0])
-  } catch {
+    const data: SpotifySearchResult = await res.json()
+    return data.tracks.items[0] || null
+  } catch (error) {
+    console.error("[v0] Spotify search error:", error)
     return null
   }
 }
