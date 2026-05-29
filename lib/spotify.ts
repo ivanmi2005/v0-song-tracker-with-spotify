@@ -18,48 +18,79 @@ interface SpotifySearchResult {
   }
 }
 
-// Cache the access token (lasts ~3600s)
-let cachedToken: { value: string; expiresAt: number } | null = null
-
-async function getAccessToken(): Promise<string | null> {
-  if (cachedToken && Date.now() < cachedToken.expiresAt) {
-    return cachedToken.value
-  }
-
+// Get Spotify access token without credentials using web access
+async function getWebAccessToken(): Promise<string | null> {
   try {
-    const res = await fetch("https://accounts.spotify.com/api/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "client_credentials",
-        client_id: process.env.SPOTIFY_CLIENT_ID || "",
-        client_secret: process.env.SPOTIFY_CLIENT_SECRET || "",
-      }),
-      cache: "no-store",
+    // Fetch Spotify main page to get access token from HTML
+    const res = await fetch("https://open.spotify.com", {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
     })
 
-    if (!res.ok) {
-      console.error("[v0] Failed to get Spotify token:", await res.text())
-      return null
+    const html = await res.text()
+    
+    // Extract accessToken from the HTML response
+    const accessTokenMatch = html.match(/"accessToken":"([^"]+)"/)
+    if (accessTokenMatch && accessTokenMatch[1]) {
+      return accessTokenMatch[1]
     }
-
-    const data = await res.json()
-    cachedToken = {
-      value: data.access_token,
-      expiresAt: Date.now() + (data.expires_in - 60) * 1000,
-    }
-    return cachedToken.value
   } catch (error) {
-    console.error("[v0] Error getting Spotify token:", error)
-    return null
+    console.error("[v0] Error getting web access token:", error)
   }
+
+  return null
+}
+
+// Cache token with expiry
+let tokenCache: { token: string; expiresAt: number } | null = null
+
+async function getAccessToken(): Promise<string | null> {
+  // Try getting token from env vars first if available
+  if (process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET) {
+    try {
+      const res = await fetch("https://accounts.spotify.com/api/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "client_credentials",
+          client_id: process.env.SPOTIFY_CLIENT_ID,
+          client_secret: process.env.SPOTIFY_CLIENT_SECRET,
+        }),
+        cache: "no-store",
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        return data.access_token
+      }
+    } catch (error) {
+      console.error("[v0] Error with credentials:", error)
+    }
+  }
+
+  // Fallback to web access token
+  if (tokenCache && Date.now() < tokenCache.expiresAt) {
+    return tokenCache.token
+  }
+
+  const token = await getWebAccessToken()
+  if (token) {
+    tokenCache = {
+      token,
+      expiresAt: Date.now() + 60 * 60 * 1000, // 1 hour
+    }
+    return token
+  }
+
+  return null
 }
 
 export async function getSpotifyTrack(trackId: string): Promise<SpotifyTrack | null> {
   try {
     const token = await getAccessToken()
     if (!token) {
-      console.error("[v0] No Spotify token available. Check SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET")
+      console.error("[v0] Unable to get Spotify token")
       return null
     }
 
@@ -69,7 +100,7 @@ export async function getSpotifyTrack(trackId: string): Promise<SpotifyTrack | n
     })
 
     if (!res.ok) {
-      console.error("[v0] Spotify track fetch failed:", res.status, await res.text())
+      console.error("[v0] Spotify track fetch failed:", res.status)
       return null
     }
     return await res.json()
@@ -83,7 +114,7 @@ export async function searchSpotifyTrack(query: string): Promise<SpotifyTrack | 
   try {
     const token = await getAccessToken()
     if (!token) {
-      console.error("[v0] No Spotify token available. Check SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET")
+      console.error("[v0] Unable to get Spotify token")
       return null
     }
 
@@ -100,7 +131,7 @@ export async function searchSpotifyTrack(query: string): Promise<SpotifyTrack | 
     )
 
     if (!res.ok) {
-      console.error("[v0] Spotify search failed:", res.status, await res.text())
+      console.error("[v0] Spotify search failed:", res.status)
       return null
     }
 
