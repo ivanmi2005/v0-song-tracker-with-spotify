@@ -12,7 +12,7 @@ export interface SpotifyTrack {
   }
 }
 
-// Using wolfXspotify API (free, no credentials required) with Spotify API as fallback
+// Spotify API as primary, wolfXspotify API as fallback (free, no credentials required)
 // https://github.com/WOLFTECH-254/wolfXspotify-API
 const WOLF_API_BASE = "https://wolfxspotify.vercel.app/api"
 
@@ -103,7 +103,24 @@ function transformWolfTrackToSpotify(wolfTrack: WolfTrackResponse["track"] | Wol
 }
 
 export async function getSpotifyTrack(trackId: string): Promise<SpotifyTrack | null> {
-  // Try wolfXspotify first
+  // Try official Spotify API first
+  try {
+    const token = await getAccessToken()
+    if (token) {
+      const res = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      })
+
+      if (res.ok) {
+        return await res.json()
+      }
+    }
+  } catch (error) {
+    console.error("[v0] Spotify API error:", error)
+  }
+
+  // Fallback to wolfXspotify
   try {
     const res = await fetch(`${WOLF_API_BASE}/track/${trackId}`, {
       cache: "no-store",
@@ -119,26 +136,38 @@ export async function getSpotifyTrack(trackId: string): Promise<SpotifyTrack | n
     console.error("[v0] wolfXspotify API error:", error)
   }
 
-  // Fallback to official Spotify API
-  try {
-    const token = await getAccessToken()
-    if (!token) return null
-
-    const res = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    })
-
-    if (!res.ok) return null
-    return await res.json()
-  } catch (error) {
-    console.error("[v0] Spotify API error:", error)
-    return null
-  }
+  return null
 }
 
 export async function searchSpotifyTrack(query: string): Promise<SpotifyTrack | null> {
-  // Try wolfXspotify first
+  // Try official Spotify API first
+  try {
+    const token = await getAccessToken()
+    if (token) {
+      const res = await fetch(
+        `https://api.spotify.com/v1/search?${new URLSearchParams({
+          q: query,
+          type: "track",
+          limit: "1",
+        })}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        },
+      )
+
+      if (res.ok) {
+        const data: SpotifySearchResult = await res.json()
+        if (data.tracks.items[0]) {
+          return data.tracks.items[0]
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[v0] Spotify search error:", error)
+  }
+
+  // Fallback to wolfXspotify
   try {
     const res = await fetch(
       `${WOLF_API_BASE}/search?${new URLSearchParams({
@@ -161,31 +190,7 @@ export async function searchSpotifyTrack(query: string): Promise<SpotifyTrack | 
     console.error("[v0] wolfXspotify search error:", error)
   }
 
-  // Fallback to official Spotify API
-  try {
-    const token = await getAccessToken()
-    if (!token) return null
-
-    const res = await fetch(
-      `https://api.spotify.com/v1/search?${new URLSearchParams({
-        q: query,
-        type: "track",
-        limit: "1",
-      })}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-      },
-    )
-
-    if (!res.ok) return null
-
-    const data: SpotifySearchResult = await res.json()
-    return data.tracks.items[0] || null
-  } catch (error) {
-    console.error("[v0] Spotify search error:", error)
-    return null
-  }
+  return null
 }
 
 export function extractTrackIdFromUrl(url: string): string | null {
