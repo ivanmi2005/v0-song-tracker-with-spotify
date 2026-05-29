@@ -5,6 +5,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { sileo } from "sileo"
 
+type ApiSource = "auto" | "spotify" | "wolf"
+
 interface TrackPreview {
   id: string
   name: string
@@ -20,6 +22,7 @@ interface TrackPreview {
 
 export function AddSongForm() {
   const [input, setInput] = useState("")
+  const [apiSource, setApiSource] = useState<ApiSource>("auto")
   const [isLoading, setIsLoading] = useState(false)
   const [preview, setPreview] = useState<TrackPreview | null>(null)
   const router = useRouter()
@@ -32,7 +35,10 @@ export function AddSongForm() {
       const response = await fetch("/api/songs/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({ 
+          input,
+          apiSource: apiSource === "auto" ? undefined : apiSource
+        }),
       })
 
       const data = await response.json()
@@ -135,6 +141,55 @@ export function AddSongForm() {
 
       {!preview && (
         <form onSubmit={handleSearch} className="space-y-6">
+          <div>
+            <label
+              htmlFor="api-source"
+              className="block font-mono text-[0.6rem] tracking-[0.18em] uppercase text-muted-foreground mb-[0.6rem]"
+            >
+              API Source
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setApiSource("auto")}
+                className={`flex-1 py-2 border font-mono text-[0.65rem] tracking-[0.1em] uppercase transition-colors ${
+                  apiSource === "auto"
+                    ? "bg-foreground text-background border-foreground"
+                    : "bg-transparent text-foreground border-border hover:border-foreground"
+                }`}
+              >
+                Auto
+              </button>
+              <button
+                type="button"
+                onClick={() => setApiSource("spotify")}
+                className={`flex-1 py-2 border font-mono text-[0.65rem] tracking-[0.1em] uppercase transition-colors ${
+                  apiSource === "spotify"
+                    ? "bg-foreground text-background border-foreground"
+                    : "bg-transparent text-foreground border-border hover:border-foreground"
+                }`}
+              >
+                Spotify
+              </button>
+              <button
+                type="button"
+                onClick={() => setApiSource("wolf")}
+                className={`flex-1 py-2 border font-mono text-[0.65rem] tracking-[0.1em] uppercase transition-colors ${
+                  apiSource === "wolf"
+                    ? "bg-foreground text-background border-foreground"
+                    : "bg-transparent text-foreground border-border hover:border-foreground"
+                }`}
+              >
+                Wolf
+              </button>
+            </div>
+            <p className="font-mono text-[0.6rem] text-muted-foreground mt-2">
+              {apiSource === "auto" && "Intenta Spotify primero, luego Wolf si falla"}
+              {apiSource === "spotify" && "Solo usa la API oficial de Spotify"}
+              {apiSource === "wolf" && "Solo usa la API de wolfXspotify (gratuita)"}
+            </p>
+          </div>
+
           <div>
             <label
               htmlFor="spotify-input"

@@ -102,8 +102,25 @@ function transformWolfTrackToSpotify(wolfTrack: WolfTrackResponse["track"] | Wol
   }
 }
 
-export async function getSpotifyTrack(trackId: string): Promise<SpotifyTrack | null> {
-  // Try official Spotify API first
+export type ApiSource = "spotify" | "wolf"
+
+export async function getSpotifyTrack(trackId: string, source?: ApiSource): Promise<SpotifyTrack | null> {
+  if (source === "wolf") {
+    return getTrackFromWolf(trackId)
+  }
+  
+  if (source === "spotify") {
+    return getTrackFromSpotify(trackId)
+  }
+
+  // Auto mode: try Spotify first, then Wolf
+  const spotifyResult = await getTrackFromSpotify(trackId)
+  if (spotifyResult) return spotifyResult
+  
+  return getTrackFromWolf(trackId)
+}
+
+async function getTrackFromSpotify(trackId: string): Promise<SpotifyTrack | null> {
   try {
     const token = await getAccessToken()
     if (token) {
@@ -119,8 +136,10 @@ export async function getSpotifyTrack(trackId: string): Promise<SpotifyTrack | n
   } catch (error) {
     console.error("[v0] Spotify API error:", error)
   }
+  return null
+}
 
-  // Fallback to wolfXspotify
+async function getTrackFromWolf(trackId: string): Promise<SpotifyTrack | null> {
   try {
     const res = await fetch(`${WOLF_API_BASE}/track/${trackId}`, {
       cache: "no-store",
@@ -135,12 +154,26 @@ export async function getSpotifyTrack(trackId: string): Promise<SpotifyTrack | n
   } catch (error) {
     console.error("[v0] wolfXspotify API error:", error)
   }
-
   return null
 }
 
-export async function searchSpotifyTrack(query: string): Promise<SpotifyTrack | null> {
-  // Try official Spotify API first
+export async function searchSpotifyTrack(query: string, source?: ApiSource): Promise<SpotifyTrack | null> {
+  if (source === "wolf") {
+    return searchFromWolf(query)
+  }
+  
+  if (source === "spotify") {
+    return searchFromSpotify(query)
+  }
+
+  // Auto mode: try Spotify first, then Wolf
+  const spotifyResult = await searchFromSpotify(query)
+  if (spotifyResult) return spotifyResult
+  
+  return searchFromWolf(query)
+}
+
+async function searchFromSpotify(query: string): Promise<SpotifyTrack | null> {
   try {
     const token = await getAccessToken()
     if (token) {
@@ -166,8 +199,10 @@ export async function searchSpotifyTrack(query: string): Promise<SpotifyTrack | 
   } catch (error) {
     console.error("[v0] Spotify search error:", error)
   }
+  return null
+}
 
-  // Fallback to wolfXspotify
+async function searchFromWolf(query: string): Promise<SpotifyTrack | null> {
   try {
     const res = await fetch(
       `${WOLF_API_BASE}/search?${new URLSearchParams({
@@ -189,7 +224,6 @@ export async function searchSpotifyTrack(query: string): Promise<SpotifyTrack | 
   } catch (error) {
     console.error("[v0] wolfXspotify search error:", error)
   }
-
   return null
 }
 
