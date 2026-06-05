@@ -49,6 +49,16 @@ function getHeroTimeLabel(dateString: string): string {
   return `Hace ${diffDays} días`
 }
 
+// Clave de agrupación: las entradas manuales tienen un spotify_track_id único
+// por registro (manual-${Date.now()}), así que para que cuenten juntas las
+// agrupamos por título+artista normalizados.
+function songKey(song: { spotify_track_id: string; track_name: string; artist_name: string }): string {
+  if (song.spotify_track_id?.startsWith("manual-")) {
+    return `manual:${song.track_name.trim().toLowerCase()}|${song.artist_name.trim().toLowerCase()}`
+  }
+  return song.spotify_track_id
+}
+
 export default async function Home() {
   const supabase = await createClient()
 
@@ -73,11 +83,12 @@ export default async function Home() {
       tracks = new Map<string, MrwSong>()
       groupsMap.set(key, tracks)
     }
-    const existing = tracks.get(song.spotify_track_id)
+    const trackKey = songKey(song)
+    const existing = tracks.get(trackKey)
     if (existing) {
       existing.plays += 1
     } else {
-      tracks.set(song.spotify_track_id, {
+      tracks.set(trackKey, {
         title: song.track_name,
         artist: song.artist_name,
         plays: 1,
@@ -110,11 +121,12 @@ export default async function Home() {
   // Top songs weighted by number of postings (play count per track).
   const songCounts = new Map<string, { title: string; artist: string; count: number }>()
   for (const song of allSongs) {
-    const existing = songCounts.get(song.spotify_track_id)
+    const key = songKey(song)
+    const existing = songCounts.get(key)
     if (existing) {
       existing.count += 1
     } else {
-      songCounts.set(song.spotify_track_id, { title: song.track_name, artist: song.artist_name, count: 1 })
+      songCounts.set(key, { title: song.track_name, artist: song.artist_name, count: 1 })
     }
   }
   const topSongs = Array.from(songCounts.values())
@@ -130,7 +142,7 @@ export default async function Home() {
 
   const stats: MrwStats = {
     totalSongs: allSongs.length,
-    uniqueCount: new Set(allSongs.map((s) => s.spotify_track_id)).size,
+    uniqueCount: new Set(allSongs.map(songKey)).size,
     daysTracked: groups.length,
     totalPlays: allSongs.length,
     avgPerDay: getAveragePerDay(allSongs),
