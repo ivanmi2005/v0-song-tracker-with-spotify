@@ -49,14 +49,30 @@ function getHeroTimeLabel(dateString: string): string {
   return `Hace ${diffDays} días`
 }
 
-// Clave de agrupación: las entradas manuales tienen un spotify_track_id único
-// por registro (manual-${Date.now()}), así que para que cuenten juntas las
-// agrupamos por título+artista normalizados.
+// Normaliza para que pequeñas variaciones (acentos, apóstrofos raros como ´,
+// mayúsculas, espacios extras, puntuación) no separen la misma canción.
+function normalizeText(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // quita acentos
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, " ") // todo lo demás → espacio
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+// Clave de agrupación común a Spotify y manuales: título + artistas (sin
+// importar el orden), normalizados. Así "Cookie / Ozuna, Beéle" y
+// "Cookie / Beéle, Ozuna" cuentan juntos, y "Ta´ Bien" agrupa con "Ta' Bien".
 function songKey(song: { spotify_track_id: string; track_name: string; artist_name: string }): string {
-  if (song.spotify_track_id?.startsWith("manual-")) {
-    return `manual:${song.track_name.trim().toLowerCase()}|${song.artist_name.trim().toLowerCase()}`
-  }
-  return song.spotify_track_id
+  const title = normalizeText(song.track_name)
+  const artists = song.artist_name
+    .split(",")
+    .map((a) => normalizeText(a))
+    .filter(Boolean)
+    .sort()
+    .join("|")
+  return `${title}::${artists}`
 }
 
 export default async function Home() {
