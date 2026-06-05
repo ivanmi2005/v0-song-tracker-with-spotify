@@ -89,8 +89,22 @@ export default async function Home() {
 
   const allSongs: Song[] = songs || []
 
-  // Reshape into the design's day-grouped structure: dedup tracks within a day,
-  // plays = times that track was posted that day. Songs come newest-first.
+  // Conteo global por canción (mismo criterio que el TOP). Se usa también en el
+  // historial para que cada fila muestre el total de veces que se ha posteado
+  // esa canción, no solo las veces ese día.
+  const songsByKey = new Map<string, { title: string; artist: string; count: number }>()
+  for (const song of allSongs) {
+    const key = songKey(song)
+    const existing = songsByKey.get(key)
+    if (existing) {
+      existing.count += 1
+    } else {
+      songsByKey.set(key, { title: song.track_name, artist: song.artist_name, count: 1 })
+    }
+  }
+
+  // Reshape into the design's day-grouped structure: dedup tracks within a day.
+  // `plays` = total global posts de la canción (no solo en ese día).
   const groupsMap = new Map<string, Map<string, MrwSong>>()
   for (const song of allSongs) {
     const key = dateKey(song.added_at)
@@ -100,14 +114,11 @@ export default async function Home() {
       groupsMap.set(key, tracks)
     }
     const trackKey = songKey(song)
-    const existing = tracks.get(trackKey)
-    if (existing) {
-      existing.plays += 1
-    } else {
+    if (!tracks.has(trackKey)) {
       tracks.set(trackKey, {
         title: song.track_name,
         artist: song.artist_name,
-        plays: 1,
+        plays: songsByKey.get(trackKey)?.count || 1,
         cover: song.album_image_url,
         spotify: song.spotify_url,
       })
@@ -134,18 +145,8 @@ export default async function Home() {
     .slice(0, 8)
     .map(([name, count]) => ({ name, count }))
 
-  // Top songs weighted by number of postings (play count per track).
-  const songCounts = new Map<string, { title: string; artist: string; count: number }>()
-  for (const song of allSongs) {
-    const key = songKey(song)
-    const existing = songCounts.get(key)
-    if (existing) {
-      existing.count += 1
-    } else {
-      songCounts.set(key, { title: song.track_name, artist: song.artist_name, count: 1 })
-    }
-  }
-  const topSongs = Array.from(songCounts.values())
+  // Top songs (reuses the same global counts).
+  const topSongs = Array.from(songsByKey.values())
     .sort((a, b) => b.count - a.count)
     .slice(0, 10)
 
@@ -158,7 +159,7 @@ export default async function Home() {
 
   const stats: MrwStats = {
     totalSongs: allSongs.length,
-    uniqueCount: new Set(allSongs.map(songKey)).size,
+    uniqueCount: songsByKey.size,
     daysTracked: groups.length,
     totalPlays: allSongs.length,
     avgPerDay: getAveragePerDay(allSongs),
