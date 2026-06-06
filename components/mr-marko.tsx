@@ -6,8 +6,7 @@ const TRIGGERS = ["marco", "marko", "barrios", "atleticostats", "beeeeee"]
 const MAX_TRIGGER_LEN = Math.max(...TRIGGERS.map((t) => t.length))
 const AUDIO_URL = "https://files.catbox.moe/1cqwhe.mp3"
 const SHEEP_URL = "https://em-content.zobj.net/source/google/439/ewe_1f411.png"
-const PLAYS_PER_CYCLE = 2
-const CYCLE_MS = 80_000
+const CYCLE_MS = 30_000
 const SPAWN_MIN_MS = 250
 const SPAWN_MAX_MS = 800
 const SIDE_BAND_VW = 18 // ancho de cada banda lateral; centro libre = 100 - 2*18 = 64vw
@@ -26,16 +25,25 @@ function rand(min: number, max: number) {
   return min + Math.random() * (max - min)
 }
 
-export function MrMarko() {
-  const [active, setActive] = useState(false)
+interface MrMarkoProps {
+  active: boolean
+  onToggle: () => void
+}
+
+export function MrMarko({ active, onToggle }: MrMarkoProps) {
   const [sheep, setSheep] = useState<Sheep[]>([])
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const sheepIdRef = useRef(0)
   const activeRef = useRef(false)
+  const onToggleRef = useRef(onToggle)
 
   useEffect(() => {
     activeRef.current = active
   }, [active])
+
+  useEffect(() => {
+    onToggleRef.current = onToggle
+  }, [onToggle])
 
   // Triggers de teclado: cualquiera de las palabras activa/desactiva el modo.
   useEffect(() => {
@@ -45,14 +53,14 @@ export function MrMarko() {
       buf = (buf + e.key.toLowerCase()).slice(-MAX_TRIGGER_LEN)
       if (TRIGGERS.some((t) => buf.endsWith(t))) {
         buf = ""
-        setActive((prev) => !prev)
+        onToggleRef.current()
       }
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [])
 
-  // Audio: 2 reproducciones aleatorias por cada ventana de 80s.
+  // Audio: 1 reproducción cada 30s. La primera suena al activar.
   useEffect(() => {
     if (!active) return
     if (!audioRef.current) {
@@ -70,17 +78,10 @@ export function MrMarko() {
         /* noop */
       }
     }
-    const timeouts: number[] = []
-    const scheduleCycle = () => {
-      for (let i = 0; i < PLAYS_PER_CYCLE; i++) {
-        timeouts.push(window.setTimeout(play, Math.random() * CYCLE_MS))
-      }
-    }
-    scheduleCycle()
-    const interval = window.setInterval(scheduleCycle, CYCLE_MS)
+    play() // primer beeeeee al activar
+    const interval = window.setInterval(play, CYCLE_MS)
     return () => {
       window.clearInterval(interval)
-      timeouts.forEach((t) => window.clearTimeout(t))
       try {
         audio.pause()
       } catch {
