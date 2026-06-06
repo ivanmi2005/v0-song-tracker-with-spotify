@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { TwitterEmbed } from "@/components/twitter-embed"
 import { CoverOrbit } from "@/components/cover-orbit"
+import { MrMarko } from "@/components/mr-marko"
 
 export interface MrwSong {
   title: string
@@ -294,6 +295,7 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
 
   return (
     <div className="mrw-page" style={{ padding: "64px 32px 0" }}>
+      <MrMarko />
       <div style={{ maxWidth: 620, margin: "0 auto" }}>
         {/* ── INTRO COVER (orbital) ── */}
         <CoverOrbit covers={orbitCovers} />
