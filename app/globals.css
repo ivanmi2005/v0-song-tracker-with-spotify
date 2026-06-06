@@ -236,3 +236,21 @@
     animation: none !important;
   }
 }
+
+/* ── Modo MrMarko (easter egg de ovejas) ──────────────────────────── */
+@keyframes mrmarko-fall {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(100vh + 120px));
+  }
+}
+@keyframes mrmarko-spin {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
