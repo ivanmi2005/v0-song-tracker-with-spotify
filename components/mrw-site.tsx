@@ -258,6 +258,7 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
   const [month, setMonth] = useState("all")
   const [artist, setArtist] = useState("all")
   const [showFilters, setShowFilters] = useState(false)
+  const [mrMarko, setMrMarko] = useState(false)
 
   const filtered = groups
     .filter((g) => month === "all" || monthKey(g.date) === month)
@@ -295,10 +296,10 @@ export function MrwSite({ groups, stats, tweetHtml }: MrwSiteProps) {
 
   return (
     <div className="mrw-page" style={{ padding: "64px 32px 0" }}>
-      <MrMarko />
+      <MrMarko active={mrMarko} onToggle={() => setMrMarko((p) => !p)} />
       <div style={{ maxWidth: 620, margin: "0 auto" }}>
         {/* ── INTRO COVER (orbital) ── */}
-        <CoverOrbit covers={orbitCovers} />
+        <CoverOrbit covers={orbitCovers} mrMarkoActive={mrMarko} />
 
         {/* ── HERO ── */}
         <header style={{ textAlign: "center", paddingTop: 8, paddingBottom: 88 }}>

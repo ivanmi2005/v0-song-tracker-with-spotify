@@ -6,6 +6,7 @@ const SLOT_COUNT = 16
 const FALLBACK_FIGURE = "/ruggeri-cutout.png"
 const TRIGGER = "ruggeri"
 const HEART_MS = 6000
+const FALLBACK_MASK = "https://em-content.zobj.net/source/google/439/ewe_1f411.png"
 
 function rand(min: number, max: number) {
   return min + Math.random() * (max - min)
@@ -34,15 +35,17 @@ interface CoverState {
 interface CoverOrbitProps {
   covers: string[]
   imageSrc?: string
+  mrMarkoActive?: boolean
 }
 
-export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp" }: CoverOrbitProps) {
+export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp", mrMarkoActive = false }: CoverOrbitProps) {
   const sceneRef = useRef<HTMLDivElement>(null)
   const elRefs = useRef<(HTMLDivElement | null)[]>([])
   const geomRef = useRef<Geom[]>([])
   const modeRef = useRef<"circle" | "heart">("circle")
   const [coverStates, setCoverStates] = useState<CoverState[]>([])
   const [figureSrc, setFigureSrc] = useState(imageSrc)
+  const [maskSrc, setMaskSrc] = useState("/sheep-mask.webp")
 
   // Geometría (círculo + puntos del corazón). Solo cliente → sin hidratación.
   useEffect(() => {
@@ -284,6 +287,30 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp" }: Cove
           pointerEvents: "none",
         }}
       />
+
+      {/* Máscara de oveja sobre la cara cuando MrMarko está activo (z8 > cabeza z7). */}
+      {mrMarkoActive && (
+        <img
+          src={maskSrc}
+          alt=""
+          aria-hidden="true"
+          onError={() => {
+            if (maskSrc !== FALLBACK_MASK) setMaskSrc(FALLBACK_MASK)
+          }}
+          style={{
+            position: "absolute",
+            top: "0%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            height: "35%",
+            width: "auto",
+            maxWidth: "52%",
+            objectFit: "contain",
+            zIndex: 8,
+            pointerEvents: "none",
+          }}
+        />
+      )}
     </div>
   )
 }
