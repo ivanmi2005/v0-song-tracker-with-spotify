@@ -48,6 +48,7 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp", mrMark
   const [maskSrc, setMaskSrc] = useState("/sheep-mask.webp")
   const [debug, setDebug] = useState(false)
   const [maskTop, setMaskTop] = useState(0) // % de altura de la escena
+  const [maskLeft, setMaskLeft] = useState(50) // % horizontal (50 = centrado)
   const [maskHeight, setMaskHeight] = useState(35) // %
   const [maskMaxWidth, setMaskMaxWidth] = useState(52) // %
 
@@ -319,7 +320,7 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp", mrMark
           style={{
             position: "absolute",
             top: `${maskTop}%`,
-            left: "50%",
+            left: `${maskLeft}%`,
             transform: "translateX(-50%)",
             height: `${maskHeight}%`,
             width: "auto",
@@ -335,6 +336,8 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp", mrMark
         <DebugPanel
           top={maskTop}
           setTop={setMaskTop}
+          left={maskLeft}
+          setLeft={setMaskLeft}
           height={maskHeight}
           setHeight={setMaskHeight}
           maxWidth={maskMaxWidth}
@@ -348,12 +351,14 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp", mrMark
 function DebugPanel(props: {
   top: number
   setTop: (n: number) => void
+  left: number
+  setLeft: (n: number) => void
   height: number
   setHeight: (n: number) => void
   maxWidth: number
   setMaxWidth: (n: number) => void
 }) {
-  const { top, setTop, height, setHeight, maxWidth, setMaxWidth } = props
+  const { top, setTop, left, setLeft, height, setHeight, maxWidth, setMaxWidth } = props
   const row = (label: string, value: number, set: (n: number) => void, min: number, max: number, step = 0.5) => (
     <div style={{ display: "grid", gridTemplateColumns: "78px 1fr 52px", gap: 8, alignItems: "center" }}>
       <span style={{ fontFamily: "var(--font-ndot), monospace", fontSize: 10, letterSpacing: "0.12em" }}>{label}</span>
@@ -400,6 +405,7 @@ function DebugPanel(props: {
         Mask debug · escribe "debug" para salir
       </p>
       {row("top", top, setTop, -10, 40)}
+      {row("left", left, setLeft, 10, 90)}
       {row("height", height, setHeight, 10, 70)}
       {row("max-w", maxWidth, setMaxWidth, 20, 90)}
       <pre
@@ -414,7 +420,7 @@ function DebugPanel(props: {
           userSelect: "all",
         }}
       >
-        {`top: ${top.toFixed(1)}%\nheight: ${height.toFixed(1)}%\nmaxWidth: ${maxWidth.toFixed(1)}%`}
+        {`top: ${top.toFixed(1)}%\nleft: ${left.toFixed(1)}%\nheight: ${height.toFixed(1)}%\nmaxWidth: ${maxWidth.toFixed(1)}%`}
       </pre>
     </div>
   )
