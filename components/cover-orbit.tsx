@@ -46,6 +46,10 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp", mrMark
   const [coverStates, setCoverStates] = useState<CoverState[]>([])
   const [figureSrc, setFigureSrc] = useState(imageSrc)
   const [maskSrc, setMaskSrc] = useState("/sheep-mask.webp")
+  const [debug, setDebug] = useState(false)
+  const [maskTop, setMaskTop] = useState(0) // % de altura de la escena
+  const [maskHeight, setMaskHeight] = useState(35) // %
+  const [maskMaxWidth, setMaskMaxWidth] = useState(52) // %
 
   // Geometría (círculo + puntos del corazón). Solo cliente → sin hidratación.
   useEffect(() => {
@@ -182,6 +186,21 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp", mrMark
     }
   }, [])
 
+  // Modo debug: teclear "debug" muestra la máscara con sliders para ajustarla.
+  useEffect(() => {
+    let buf = ""
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.length !== 1) return
+      buf = (buf + e.key.toLowerCase()).slice(-5)
+      if (buf === "debug") {
+        buf = ""
+        setDebug((d) => !d)
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
+
   // Intercambio continuo de portadas (constante y aleatorio).
   useEffect(() => {
     if (covers.length === 0) return
@@ -288,8 +307,8 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp", mrMark
         }}
       />
 
-      {/* Máscara de oveja sobre la cara cuando MrMarko está activo (z8 > cabeza z7). */}
-      {mrMarkoActive && (
+      {/* Máscara de oveja sobre la cara cuando MrMarko (o debug) está activo. */}
+      {(mrMarkoActive || debug) && (
         <img
           src={maskSrc}
           alt=""
@@ -299,18 +318,104 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp", mrMark
           }}
           style={{
             position: "absolute",
-            top: "0%",
+            top: `${maskTop}%`,
             left: "50%",
             transform: "translateX(-50%)",
-            height: "35%",
+            height: `${maskHeight}%`,
             width: "auto",
-            maxWidth: "52%",
+            maxWidth: `${maskMaxWidth}%`,
             objectFit: "contain",
             zIndex: 8,
             pointerEvents: "none",
           }}
         />
       )}
+
+      {debug && (
+        <DebugPanel
+          top={maskTop}
+          setTop={setMaskTop}
+          height={maskHeight}
+          setHeight={setMaskHeight}
+          maxWidth={maskMaxWidth}
+          setMaxWidth={setMaskMaxWidth}
+        />
+      )}
+    </div>
+  )
+}
+
+function DebugPanel(props: {
+  top: number
+  setTop: (n: number) => void
+  height: number
+  setHeight: (n: number) => void
+  maxWidth: number
+  setMaxWidth: (n: number) => void
+}) {
+  const { top, setTop, height, setHeight, maxWidth, setMaxWidth } = props
+  const row = (label: string, value: number, set: (n: number) => void, min: number, max: number, step = 0.5) => (
+    <div style={{ display: "grid", gridTemplateColumns: "78px 1fr 52px", gap: 8, alignItems: "center" }}>
+      <span style={{ fontFamily: "var(--font-ndot), monospace", fontSize: 10, letterSpacing: "0.12em" }}>{label}</span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => set(parseFloat(e.target.value))}
+        style={{ width: "100%" }}
+      />
+      <span style={{ fontFamily: "var(--font-ndot), monospace", fontSize: 11, textAlign: "right" }}>{value.toFixed(1)}%</span>
+    </div>
+  )
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 12,
+        right: 12,
+        zIndex: 9999,
+        background: "rgba(0,0,0,0.85)",
+        color: "#fff",
+        padding: 14,
+        borderRadius: 6,
+        minWidth: 280,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          fontFamily: "var(--font-ndot), monospace",
+          fontSize: 10,
+          letterSpacing: "0.2em",
+          textTransform: "uppercase",
+          opacity: 0.7,
+        }}
+      >
+        Mask debug · escribe "debug" para salir
+      </p>
+      {row("top", top, setTop, -10, 40)}
+      {row("height", height, setHeight, 10, 70)}
+      {row("max-w", maxWidth, setMaxWidth, 20, 90)}
+      <pre
+        style={{
+          margin: 0,
+          padding: 8,
+          background: "rgba(255,255,255,0.08)",
+          borderRadius: 4,
+          fontSize: 11,
+          fontFamily: "var(--font-ndot), monospace",
+          whiteSpace: "pre-wrap",
+          userSelect: "all",
+        }}
+      >
+        {`top: ${top.toFixed(1)}%\nheight: ${height.toFixed(1)}%\nmaxWidth: ${maxWidth.toFixed(1)}%`}
+      </pre>
     </div>
   )
 }
