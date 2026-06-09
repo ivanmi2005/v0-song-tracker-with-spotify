@@ -201,40 +201,13 @@
 }
 
 /* ── Cover orbit (portada introductoria) ──────────────────────────── */
+/* La posición la anima cover-orbit.tsx vía requestAnimationFrame. */
 .mrw-orbit-cover {
-  position: absolute;
-  top: var(--orbit-cy, 50%);
-  left: 50%;
   border-radius: 3px;
   overflow: hidden;
   will-change: transform;
   pointer-events: none;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
-}
-
-@keyframes mrw-orbit {
-  from {
-    transform: rotate(0deg) translateX(var(--r)) rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg) translateX(var(--r)) rotate(-360deg);
-  }
-}
-
-/* Pasa por detrás (z bajo) la primera mitad del giro y por delante la segunda. */
-@keyframes mrw-orbit-z {
-  0% {
-    z-index: 3;
-  }
-  50% {
-    z-index: 5;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mrw-orbit-cover {
-    animation: none !important;
-  }
 }
 
 /* ── Modo MrMarko (easter egg de ovejas) ──────────────────────────── */

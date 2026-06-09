@@ -17,10 +17,13 @@ interface Song {
 const TWEET_HTML = `<blockquote class="twitter-tweet" data-media-max-width="560"><p lang="es" dir="ltr">El que no quiera, que no se lo crea. Cerrando el Opium el tío mientras los demás seguimos jodidos hoy. <a href="https://t.co/hFM3X34t2W">pic.twitter.com/hFM3X34t2W</a></p>&mdash; Camisetas Retro Atleti (@RetroAtleti) <a href="https://twitter.com/RetroAtleti/status/2016859862001410423?ref_src=twsrc%5Etfw">January 29, 2026</a></blockquote>`
 
 function dateKey(dateString: string): string {
+  // TZ fija: en Vercel el servidor corre en UTC y un post de madrugada en
+  // España caería en el día anterior sin esto.
   return new Date(dateString).toLocaleDateString("es-ES", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: "Europe/Madrid",
   })
 }
 
@@ -41,10 +44,9 @@ function getFirstSongDate(songs: Song[]): string {
 }
 
 function getHeroTimeLabel(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffDays = Math.floor(Math.abs(now.getTime() - date.getTime()) / 86400000)
-  if (diffDays === 0) return "Today"
+  // "Today" por día de calendario (Madrid), no por horas transcurridas.
+  if (dateKey(dateString) === dateKey(new Date().toISOString())) return "Today"
+  const diffDays = Math.max(1, Math.round((Date.now() - new Date(dateString).getTime()) / 86400000))
   if (diffDays === 1) return "Hace 1 día"
   return `Hace ${diffDays} días`
 }
