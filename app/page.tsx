@@ -103,32 +103,30 @@ export default async function Home() {
     }
   }
 
-  // Reshape into the design's day-grouped structure: dedup tracks within a day.
-  // `plays` = total global posts de la canción (no solo en ese día).
-  const groupsMap = new Map<string, Map<string, MrwSong>>()
+  // Reshape into the design's day-grouped structure: cada posting aparece como
+  // su propia fila (no se deduplica dentro del día). El `plays` de cada fila es
+  // el total global de esa canción (mismo número que en el TOP).
+  const groupsMap = new Map<string, MrwSong[]>()
   for (const song of allSongs) {
     const key = dateKey(song.added_at)
-    let tracks = groupsMap.get(key)
-    if (!tracks) {
-      tracks = new Map<string, MrwSong>()
-      groupsMap.set(key, tracks)
+    let list = groupsMap.get(key)
+    if (!list) {
+      list = []
+      groupsMap.set(key, list)
     }
-    const trackKey = songKey(song)
-    if (!tracks.has(trackKey)) {
-      tracks.set(trackKey, {
-        title: song.track_name,
-        artist: song.artist_name,
-        plays: songsByKey.get(trackKey)?.count || 1,
-        cover: song.album_image_url,
-        spotify: song.spotify_url,
-      })
-    }
+    list.push({
+      title: song.track_name,
+      artist: song.artist_name,
+      plays: songsByKey.get(songKey(song))?.count || 1,
+      cover: song.album_image_url,
+      spotify: song.spotify_url,
+    })
   }
 
-  const groups: MrwGroup[] = Array.from(groupsMap.entries()).map(([date, tracks]) => ({
+  const groups: MrwGroup[] = Array.from(groupsMap.entries()).map(([date, songs]) => ({
     date,
-    count: tracks.size,
-    songs: Array.from(tracks.values()),
+    count: songs.length,
+    songs,
   }))
 
   // Top artists weighted by postings (split comma-separated artist strings).
