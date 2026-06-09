@@ -6,6 +6,8 @@ export async function POST(request: Request) {
     const { password } = await request.json()
 
     if (!verifyPassword(password)) {
+      // Encarece la fuerza bruta sin necesitar estado compartido.
+      await new Promise((r) => setTimeout(r, 500))
       return NextResponse.json({ error: "Contraseña incorrecta" }, { status: 401 })
     }
 

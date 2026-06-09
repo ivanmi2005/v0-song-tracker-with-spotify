@@ -16,6 +16,12 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
+// No disparar el easter egg mientras se escribe en un campo (buscador, login…).
+function isTypingTarget(e: KeyboardEvent): boolean {
+  const t = e.target as HTMLElement | null
+  return !!t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)
+}
+
 interface Geom {
   radius: number
   speed: number // rad/s
@@ -164,7 +170,7 @@ export function CoverOrbit({ covers, imageSrc = "/ruggeri-thumbsup.webp", mrMark
     let buf = ""
     let timer = 0
     const onKey = (e: KeyboardEvent) => {
-      if (e.key.length !== 1) return
+      if (e.key.length !== 1 || isTypingTarget(e)) return
       buf = (buf + e.key.toLowerCase()).slice(-TRIGGER.length)
       if (buf === TRIGGER) {
         buf = ""

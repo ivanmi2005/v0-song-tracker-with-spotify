@@ -25,6 +25,12 @@ function rand(min: number, max: number) {
   return min + Math.random() * (max - min)
 }
 
+// No disparar triggers mientras se escribe en un campo (buscador, login…).
+function isTypingTarget(e: KeyboardEvent): boolean {
+  const t = e.target as HTMLElement | null
+  return !!t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)
+}
+
 interface MrMarkoProps {
   active: boolean
   onToggle: () => void
@@ -49,7 +55,7 @@ export function MrMarko({ active, onToggle }: MrMarkoProps) {
   useEffect(() => {
     let buf = ""
     const onKey = (e: KeyboardEvent) => {
-      if (e.key.length !== 1) return
+      if (e.key.length !== 1 || isTypingTarget(e)) return
       buf = (buf + e.key.toLowerCase()).slice(-MAX_TRIGGER_LEN)
       if (TRIGGERS.some((t) => buf.endsWith(t))) {
         buf = ""
